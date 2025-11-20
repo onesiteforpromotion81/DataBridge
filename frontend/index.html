@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Data Bridge</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    #result { margin-top: 20px; white-space: pre-wrap; }
+    #loader { display: none; margin-top: 10px; }
+  </style>
+</head>
+
+<body>
+  <h2>Upload CSV</h2>
+
+  <form id="uploadForm">
+    <input type="file" id="file" accept=".csv" required />
+    <select id="type"></select>
+    <button id="submitBtn" type="submit">Upload</button>
+  </form>
+
+  <progress id="progress" value="0" max="100" style="width: 100%; display: none;"></progress>
+  <div id="loader">Loading types…</div>
+  <div id="result"></div>
+
+  <script type="module">
+    const API_BASE = "http://localhost:3000/api/csv";
+
+    const fileInput = document.getElementById("file");
+    const typeSelect = document.getElementById("type");
+    const progressBar = document.getElementById("progress");
+    const loader = document.getElementById("loader");
+    const submitBtn = document.getElementById("submitBtn");
+    const resultDiv = document.getElementById("result");
+
+    // Wrap fetch for reusability
+    async function api(url, options = {}) {
+      const res = await fetch(url, options);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Request failed");
+      return data;
+    }
+
+    // Load CSV types
+    async function loadTypes() {
+      loader.style.display = "block";
+      try {
+        const data = await api(`${API_BASE}/types`);
+        typeSelect.innerHTML = data.types
+          .map(t => `<option value="${t}">${t}</option>`)
+          .join("");
+      } catch (err) {
+        typeSelect.innerHTML = `<option disabled>Error loading types</option>`;
+        console.error(err);
+      } finally {
+        loader.style.display = "none";
+      }
+    }
+
+    loadTypes();
+
+    // Upload CSV Handler
+    document.getElementById("uploadForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const file = fileInput.files[0];
+      const type = typeSelect.value;
+
+      if (!file) {
+        resultDiv.textContent = "Please choose a file.";
+        return;
+      }
+
+      if (!file.name.endsWith(".csv")) {
+        resultDiv.textContent = "File must be a .csv";
+        return;
+      }
+
+      submitBtn.disabled = true;
+      progressBar.style.display = "block";
+      progressBar.value = 0;
+      resultDiv.textContent = "Uploading...";
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("type", type);
+
+      try {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", `${API_BASE}/upload`);
+
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            progressBar.value = Math.round((e.loaded / e.total) * 100);
+          }
+        };
+
+        xhr.onload = () => {
+          submitBtn.disabled = false;
+          if (xhr.status >= 200 && xhr.status < 300) {
+            const json = JSON.parse(xhr.responseText);
+            console.log("json: ", json);
+            resultDiv.textContent = json.message + ', and ' + json.inserted + ' rows inserted into ' + '"' +json.tableName + '"' +' table';
+          } else {
+            resultDiv.textContent = "Upload failed: " + xhr.responseText;
+          }
+        };
+
+        xhr.onerror = () => {
+          resultDiv.textContent = "Upload error occurred.";
+          submitBtn.disabled = false;
+        };
+
+        xhr.send(formData);
+      } catch (err) {
+        resultDiv.textContent = "Error: " + err.message;
+      }
+    });
+  </script>
+</body>
+</html>
