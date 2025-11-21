@@ -1,32 +1,11 @@
-import BaseCSVHandler from "./baseHandler.js";
+import BaseActiveHandler from "../common/baseActiveHandler_6_15.js";
 
-export default class AccountClassifications extends BaseCSVHandler {
-  filterData(filters = {}) {
-    const allowedColumns = ["MSM030", "MSM040", "MSM110"];
-    return this.data.filter((row) => {
-      // Only include active users
-      if (row.MSM020 !== "30") return false;
-
-      // Check dynamic column filters
-      return allowedColumns.every((col) => {
-        if (filters[col] !== undefined) {
-          return row[col] === filters[col];
-        }
-        return true; // no filter for this column
-      });
-    });
-  }
+export default class AccountClassifications extends BaseActiveHandler {
+  activeCode = "30"; // Only include rows with MSM020 = 30
+  allowedColumns = ["MSM030", "MSM040", "MSM110"];
+  columnMapping = null; // Uses default mapping from constants.js
 
   getTableName() {
     return "account_classifications";
-  }
-
-  getColumns() {
-    // Map CSV columns to DB columns
-    return {
-      MSM030: "code",
-      MSM040: "name",
-      MSM110: "updated_at",
-    };
   }
 }
