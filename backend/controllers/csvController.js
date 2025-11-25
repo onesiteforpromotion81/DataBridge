@@ -1,6 +1,5 @@
 import path from "path";
 import pool from "../db/connections.js";
-import { parseCSV } from "../utils/csvParser.js";
 import { loadHandlers } from "../utils/handlerLoader.js";
 import { fileURLToPath } from "url";
 import { parseCSVShiftJIS } from "../utils/parseCSVShiftJIS.js";
@@ -34,15 +33,21 @@ export const uploadCSV = async (req, res) => {
     const table = handler.getTableName();
     const columnMap = handler.getColumns();
 
-    const dbColumns = Object.values(columnMap);
-    const csvColumns = Object.keys(columnMap); 
+    // Add "is_active" to columns
+    const dbColumns = [...Object.values(columnMap), "is_active"];
+    const csvColumns = Object.keys(columnMap);
+
     if (filteredData.length === 0) {
-      return res.json({ message: "No rows matched the filter", inserted: 0 });
+      return res.json({ message: "No rows matched the filter", inserted: 0, tableName: table });
     }
 
-    // BULK INSERT
+    // BULK INSERT with is_active = 1
     const placeholders = filteredData.map(() => `(${dbColumns.map(() => "?").join(",")})`).join(",");
-    const values = filteredData.flatMap(row => csvColumns.map(col => row[col] ?? null));
+    const values = filteredData.flatMap(row => [
+      ...csvColumns.map(col => row[col] ?? null),
+      1 // Add is_active = 1 for each row
+    ]);
+
     const sql = `INSERT INTO ${table} (${dbColumns.join(",")}) VALUES ${placeholders}`;
 
     await pool.query(sql, values);
