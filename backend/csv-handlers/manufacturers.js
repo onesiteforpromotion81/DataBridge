@@ -8,4 +8,8 @@ export default class Manufacturers extends BaseActiveHandler {
   getTableName() {
     return "manufacturers";
   }
+
+  getUniqueKey() {
+    return "code"; 
+  }
 }

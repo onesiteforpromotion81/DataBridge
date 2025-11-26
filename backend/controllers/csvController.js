@@ -41,6 +41,35 @@ export const uploadCSV = async (req, res) => {
       return res.json({ message: "No rows matched the filter", inserted: 0, tableName: table });
     }
 
+    if (!handler.getUniqueKey) {
+      return res.status(500).json({ error: "Handler must implement getUniqueKey()" });
+    }
+
+    const uniqueColumn = handler.getUniqueKey();
+
+    // Check if UNIQUE index already exists
+    const checkIndexSql = `
+      SELECT COUNT(1) AS count 
+      FROM information_schema.statistics 
+      WHERE table_schema = DATABASE()
+        AND table_name = ?
+        AND column_name = ?
+        AND non_unique = 0;
+    `;
+
+    const [indexResult] = await pool.query(checkIndexSql, [table, uniqueColumn]);
+
+    // If no UNIQUE index, create it
+    if (indexResult[0].count === 0) {
+      const createIndexSql = `ALTER TABLE ${table} ADD UNIQUE (${uniqueColumn})`;
+      try {
+        await pool.query(createIndexSql);
+        console.log(`Created UNIQUE KEY on ${table}.${uniqueColumn}`);
+      } catch (err) {
+        console.error("Failed to create unique key:", err);
+      }
+    }
+
     // BULK INSERT with is_active = 1
     const placeholders = filteredData.map(() => `(${dbColumns.map(() => "?").join(",")})`).join(",");
     const values = filteredData.flatMap(row => [
@@ -48,7 +77,7 @@ export const uploadCSV = async (req, res) => {
       1 // Add is_active = 1 for each row
     ]);
 
-    const sql = `INSERT INTO ${table} (${dbColumns.join(",")}) VALUES ${placeholders}`;
+    const sql = `INSERT IGNORE INTO ${table} (${dbColumns.join(",")}) VALUES ${placeholders}`;
 
     await pool.query(sql, values);
 

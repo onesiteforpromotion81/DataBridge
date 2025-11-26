@@ -8,4 +8,8 @@ export default class SlipTypes extends BaseActiveHandler {
   getTableName() {
     return "slip_types";
   }
+
+  getUniqueKey() {
+    return "code"; 
+  }
 }

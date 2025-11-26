@@ -8,4 +8,8 @@ export default class SaleSizes extends BaseActiveHandler {
   getTableName() {
     return "sale_sizes";
   }
+
+  getUniqueKey() {
+    return "code"; 
+  }
 }

@@ -8,4 +8,8 @@ export default class BusinessTypes extends BaseActiveHandler {
   getTableName() {
     return "business_types";
   }
+
+  getUniqueKey() {
+    return "code"; 
+  }
 }
