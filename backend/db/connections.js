@@ -1,10 +1,19 @@
 import mysql from "mysql2/promise";
-import dotenv from "dotenv";
 
-dotenv.config();
-console.log(process.env.DB_HOST);
+// Only load dotenv in local development
+if (process.env.NODE_ENV !== "production") {
+  import('dotenv').then(dotenv => dotenv.config());
+}
+
+// Log DB info (for debugging)
+console.log("DB_HOST:", process.env.DB_HOST);
+console.log("DB_PORT:", process.env.DB_PORT);
+console.log("DB_DATABASE:", process.env.DB_DATABASE);
+
+// Create MySQL pool
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
+  port: Number(process.env.DB_PORT) || 3306,  // default to 3306 if undefined
   user: process.env.DB_USERNAME,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_DATABASE,
@@ -12,8 +21,10 @@ const pool = mysql.createPool({
   connectionLimit: Number(process.env.DB_CONNECTION_LIMIT || 10),
 });
 
+// Export pool for use in other modules
 export default pool;
 
+// Test connection function
 export const testConnection = async () => {
   try {
     const connection = await pool.getConnection();
