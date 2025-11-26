@@ -8,4 +8,8 @@ export default class AccountClassifications extends BaseActiveHandler {
   getTableName() {
     return "account_classifications";
   }
+
+  getUniqueKey() {
+    return "code"; 
+  }
 }

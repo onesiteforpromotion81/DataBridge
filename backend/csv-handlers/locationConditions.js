@@ -8,4 +8,8 @@ export default class LocationConditions extends BaseActiveHandler {
   getTableName() {
     return "location_conditions";
   }
+
+  getUniqueKey() {
+    return "code"; 
+  }
 }
