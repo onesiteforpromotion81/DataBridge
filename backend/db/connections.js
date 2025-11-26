@@ -2,7 +2,7 @@ import mysql from "mysql2/promise";
 import dotenv from "dotenv";
 
 dotenv.config();
-
+console.log(process.env.DB_HOST);
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USERNAME,
@@ -20,6 +20,6 @@ export const testConnection = async () => {
     console.log("✅ MySQL connected successfully!");
     connection.release();
   } catch (err) {
-    console.error("❌ MySQL connection failed:", err.message);
+    console.error("❌ MySQL connection failed:", err);
   }
 };
