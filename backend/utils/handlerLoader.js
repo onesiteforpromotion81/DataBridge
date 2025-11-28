@@ -23,6 +23,5 @@ export const loadHandlers = async () => {
     handlerName = handlerName ?? (optionName === 'placeOfOrigins' ? '原産地' : undefined);
     handlers[handlerName] = module.default;
   }
-
   return handlers;
 };

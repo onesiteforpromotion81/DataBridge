@@ -1,6 +1,5 @@
 import path from "path";
 import pool from "../db/connections.js";
-import { parseCSV } from "../utils/csvParser.js";
 import { loadHandlers } from "../utils/handlerLoader.js";
 import { fileURLToPath } from "url";
 import { parseCSVShiftJIS } from "../utils/parseCSVShiftJIS.js";
@@ -22,7 +21,6 @@ export const uploadCSV = async (req, res) => {
     const data = await parseCSVShiftJIS(filePath);
     const HandlerClass = handlers[type];
     const handler = new HandlerClass(data);
-
     // Validation
     if (!handler.getTableName || !handler.getColumns) {
       return res.status(500).json({ error: "Handler must implement getTableName() and getColumns()" });
