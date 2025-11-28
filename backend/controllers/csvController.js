@@ -37,7 +37,7 @@ export const uploadCSV = async (req, res) => {
     const dbColumns = Object.values(columnMap);
     const csvColumns = Object.keys(columnMap); 
     if (filteredData.length === 0) {
-      return res.json({ message: "No rows matched the filter", inserted: 0 });
+      return res.json({ message: "No rows matched the filter", inserted: 0, tableName: table });
     }
 
     // Ensure handler provides the unique key
