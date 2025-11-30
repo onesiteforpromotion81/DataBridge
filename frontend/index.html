@@ -3,24 +3,129 @@
 <head>
   <title>Data Bridge</title>
   <style>
-    body { font-family: Arial; padding: 20px; }
-    #result { margin-top: 20px; white-space: pre-wrap; }
-    #loader { display: none; margin-top: 10px; }
+    body {
+      font-family: "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+      background: #f5f7fa;
+      padding: 30px;
+      font-size: 14px;
+      color: #333;
+    }
+
+    h2 {
+      font-size: 18px;
+      color: #0B63CE;
+      border-left: 6px solid #0B63CE;
+      padding-left: 10px;
+      margin-bottom: 20px;
+    }
+
+    .container {
+      max-width: 620px;
+      background: white;
+      padding: 20px 25px;
+      border: 1px solid #d0d7e1;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+
+    .form-row {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: inline-block;
+      width: 120px;
+      font-weight: bold;
+      color: #444;
+    }
+
+    input[type="file"],
+    select {
+      padding: 5px;
+      border: 1px solid #c5cdd7;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    button {
+      background: #0B63CE;
+      color: white;
+      padding: 8px 18px;
+      border: none;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      background: #a9c2e5;
+      cursor: default;
+    }
+
+    #result {
+      margin-top: 20px;
+      padding: 12px;
+      border: 1px solid #d3d9e3;
+      background: #fafcff;
+      white-space: pre-wrap;
+      border-radius: 4px;
+    }
+
+    #loader {
+      display: none;
+      margin: 8px 0;
+      font-size: 13px;
+      color: #555;
+    }
+
+    progress {
+      width: 100%;
+      margin-top: 10px;
+      height: 16px;
+    }
+
+    footer {
+      margin-top: 40px;
+      font-size: 12px;
+      color: #777;
+      text-align: center;
+    }
   </style>
 </head>
 
 <body>
-  <h2>Upload CSV</h2>
 
-  <form id="uploadForm">
-    <input type="file" id="file" accept=".csv" required />
-    <select id="type"></select>
-    <button id="submitBtn" type="submit">Upload</button>
-  </form>
+  <div class="container">
+    <h2>CSVファイルアップロード</h2>
 
-  <progress id="progress" value="0" max="100" style="width: 100%; display: none;"></progress>
-  <div id="loader">Loading types…</div>
-  <div id="result"></div>
+    <form id="uploadForm">
+      
+      <div class="form-row">
+        <label>CSV ファイル：</label>
+        <input type="file" id="file" accept=".csv" required />
+      </div>
+
+      <div class="form-row">
+        <label>タイプ選択：</label>
+        <select id="type"></select>
+      </div>
+
+      <div class="form-row">
+        <button id="submitBtn" type="submit">アップロード</button>
+      </div>
+
+    </form>
+
+    <div id="loader">読み込み中…</div>
+
+    <progress id="progress" value="0" max="100" style="display: none;"></progress>
+
+    <div id="result"></div>
+    <footer>© Data Bridge System</footer>
+  </div>
+
+  
+
 
   <script type="module">
     const API_BASE = "https://databridge-production-f9f6.up.railway.app/api/csv";
@@ -49,7 +154,7 @@
           .map(t => `<option value="${t}">${t}</option>`)
           .join("");
       } catch (err) {
-        typeSelect.innerHTML = `<option disabled>Error loading types</option>`;
+        typeSelect.innerHTML = `<option disabled>読み込みエラー</option>`;
         console.error(err);
       } finally {
         loader.style.display = "none";
@@ -66,19 +171,19 @@
       const type = typeSelect.value;
 
       if (!file) {
-        resultDiv.textContent = "Please choose a file.";
+        resultDiv.textContent = "CSVファイルを選択してください。";
         return;
       }
 
       if (!file.name.endsWith(".csv")) {
-        resultDiv.textContent = "File must be a .csv";
+        resultDiv.textContent = "CSV形式のファイルのみアップロードできます。";
         return;
       }
 
       submitBtn.disabled = true;
       progressBar.style.display = "block";
       progressBar.value = 0;
-      resultDiv.textContent = "Uploading...";
+      resultDiv.textContent = "アップロード中…";
 
       const formData = new FormData();
       formData.append("file", file);
@@ -99,20 +204,20 @@
           if (xhr.status >= 200 && xhr.status < 300) {
             const json = JSON.parse(xhr.responseText);
             console.log("json: ", json);
-            resultDiv.textContent = json.message + ', and ' + json.inserted + ' rows inserted into ' + '"' +json.tableName + '"' +' table';
+            resultDiv.textContent = `${json.message}。\n${json.inserted} 行が "${json.tableName}" テーブルに追加されました。`;
           } else {
-            resultDiv.textContent = "Upload failed: " + xhr.responseText;
+            resultDiv.textContent = "アップロード失敗：" + xhr.responseText;
           }
         };
 
         xhr.onerror = () => {
-          resultDiv.textContent = "Upload error occurred.";
+          resultDiv.textContent = "通信エラーが発生しました。";
           submitBtn.disabled = false;
         };
 
         xhr.send(formData);
       } catch (err) {
-        resultDiv.textContent = "Error: " + err.message;
+        resultDiv.textContent = "エラー：" + err.message;
       }
     });
   </script>

@@ -1,14 +1,7 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import mysql from "mysql2/promise";
-
-// Only load dotenv in local development
-if (process.env.NODE_ENV !== "production") {
-  import('dotenv').then(dotenv => dotenv.config());
-}
-
-// Log DB info (for debugging)
-console.log("DB_HOST:", process.env.DB_HOST);
-console.log("DB_PORT:", process.env.DB_PORT);
-console.log("DB_DATABASE:", process.env.DB_DATABASE);
 
 // Create MySQL pool
 const pool = mysql.createPool({
