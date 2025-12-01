@@ -5,3 +5,9 @@ export const DEFAULT_COLUMN_MAPPING = {
   MSM040: "name",
   MSM110: "updated_at",
 };
+
+export const DEFAULT_COLUMN_MAPPING_Note = {
+  MSM030: "code",
+  MSM040: "content",
+  MSM110: "updated_at",
+};

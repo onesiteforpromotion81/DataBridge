@@ -1,6 +1,6 @@
 import BaseCSVHandler from "../csv-handlers/baseHandler.js";
 import { applyFilters } from "./helpers/applyFilters_6_15.js";
-import { DEFAULT_ALLOWED_COLUMNS, DEFAULT_COLUMN_MAPPING } from "./constants_6_15.js";
+import { DEFAULT_ALLOWED_COLUMNS, DEFAULT_COLUMN_MAPPING, DEFAULT_COLUMN_MAPPING_Note } from "./constants_6_15.js";
 
 export default class BaseActiveHandler extends BaseCSVHandler {
   constructor(...args) {
@@ -28,5 +28,9 @@ export default class BaseActiveHandler extends BaseCSVHandler {
    */
   getColumns() {
     return this.columnMapping || DEFAULT_COLUMN_MAPPING;
+  }
+
+  getColumns_Note() {
+    return this.columnMapping || DEFAULT_COLUMN_MAPPING_Note;
   }
 }

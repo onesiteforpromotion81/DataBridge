@@ -1,6 +1,5 @@
 import path from "path";
 import pool from "../db/connections.js";
-import { parseCSV } from "../utils/csvParser.js";
 import { loadHandlers } from "../utils/handlerLoader.js";
 import { fileURLToPath } from "url";
 import { parseCSVShiftJIS } from "../utils/parseCSVShiftJIS.js";
@@ -32,7 +31,12 @@ export const uploadCSV = async (req, res) => {
     if (!Array.isArray(filteredData)) return res.status(500).json({ error: "filterData() must return an array" });
 
     const table = handler.getTableName();
-    const columnMap = handler.getColumns();
+    let columnMap;
+    if (table === 'notes') {
+      columnMap = handler.getColumns_Note();
+    } else {
+      columnMap = handler.getColumns();
+    }    
 
     const dbColumns = Object.values(columnMap);
     const csvColumns = Object.keys(columnMap); 
