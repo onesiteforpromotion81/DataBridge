@@ -8,4 +8,8 @@ export default class Materials extends BaseActiveHandler {
   getTableName() {
     return "notes";
   }
+
+  getUniqueKey() {
+    return "code"; 
+  }
 }
