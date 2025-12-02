@@ -56,6 +56,13 @@ export const uploadCSV = async (req, res) => {
         }
       });
     }
+    if (table === "departments") {
+      filteredData.forEach(row => {
+        if (!row["MSM040"] || row["MSM040"].trim() === "") {
+          row["MSM040"] = "部門";  // default value
+        }
+      });
+    }
     // Ensure handler provides the unique key
     if (!handler.getUniqueKey) {
       return res.status(500).json({ error: "Handler must implement getUniqueKey()" });
