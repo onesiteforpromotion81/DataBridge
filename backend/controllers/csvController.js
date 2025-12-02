@@ -30,6 +30,11 @@ export const uploadCSV = async (req, res) => {
     const filteredData = handler.filterData();
     if (!Array.isArray(filteredData)) return res.status(500).json({ error: "filterData() must return an array" });
 
+    filteredData.forEach(row => {
+      if (!("is_active" in row) || row["is_active"] === "" || row["is_active"] == null) {
+        row["is_active"] = 1;
+      }
+    });
     const table = handler.getTableName();
     let columnMap;
     if (table === 'notes') {
