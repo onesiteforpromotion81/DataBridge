@@ -24,6 +24,7 @@ export const loadHandlers = async () => {
     handlerName = handlerName ?? (optionName === 'notes' ? '備考' : undefined);
     handlerName = handlerName ?? (optionName === 'areas' ? '地区' : undefined);
     handlerName = handlerName ?? (optionName === 'departments' ? '部門' : undefined);
+    handlerName = handlerName ?? (optionName === 'branches' ? '支店' : undefined);
     handlers[handlerName] = module.default;
   }
 
