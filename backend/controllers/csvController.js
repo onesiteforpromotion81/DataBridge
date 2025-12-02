@@ -46,8 +46,8 @@ export const uploadCSV = async (req, res) => {
 
     if (table === "areas") {
       filteredData.forEach(row => {
-        if (!row["name"] || row["name"].trim() === "") {
-          row["name"] = "地区";  // default value
+        if (!row["MSM040"] || row["MSM040"].trim() === "") {
+          row["MSM040"] = "地区";  // default value
         }
       });
     }
