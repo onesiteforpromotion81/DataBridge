@@ -22,6 +22,7 @@ export const loadHandlers = async () => {
     handlerName = handlerName ?? (optionName === 'materials' ? '原料' : undefined);
     handlerName = handlerName ?? (optionName === 'placeOfOrigins' ? '原産地' : undefined);
     handlerName = handlerName ?? (optionName === 'notes' ? '備考' : undefined);
+    handlerName = handlerName ?? (optionName === 'areas' ? '地区' : undefined);
     handlers[handlerName] = module.default;
   }
 

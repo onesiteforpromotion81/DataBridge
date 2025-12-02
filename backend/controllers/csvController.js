@@ -44,6 +44,13 @@ export const uploadCSV = async (req, res) => {
       return res.json({ message: "No rows matched the filter", inserted: 0, tableName: table });
     }
 
+    if (table === "areas") {
+      filteredData.forEach(row => {
+        if (!row["name"] || row["name"].trim() === "") {
+          row["name"] = "地区";  // default value
+        }
+      });
+    }
     // Ensure handler provides the unique key
     if (!handler.getUniqueKey) {
       return res.status(500).json({ error: "Handler must implement getUniqueKey()" });
