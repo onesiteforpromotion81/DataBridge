@@ -25,6 +25,7 @@ export const loadHandlers = async () => {
     handlerName = handlerName ?? (optionName === 'areas' ? '地区' : undefined);
     handlerName = handlerName ?? (optionName === 'departments' ? '部門' : undefined);
     handlerName = handlerName ?? (optionName === 'branches' ? '支店' : undefined);
+    handlerName = handlerName ?? (optionName === 'locations' ? 'ロケーション' : undefined);
     handlers[handlerName] = module.default;
   }
 

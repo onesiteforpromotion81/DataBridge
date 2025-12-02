@@ -13,3 +13,12 @@ export const DEFAULT_COLUMN_MAPPING_Note = {
   MSM110: "updated_at",
   is_active: "is_active"
 };
+
+export const DEFAULT_ALLOWED_COLUMNS_LOCATIONS = ["S0104", "S0202", "S0204", "S0206"];
+
+export const DEFAULT_COLUMN_MAPPING_Location = {
+  S0104: "warehouse_id",
+  S0202: "code1",
+  S0204: "code2",
+  S0206: "code3"
+};
