@@ -42,6 +42,11 @@ export const uploadCSV = async (req, res) => {
         row["is_active"] = 1;
       }
     });
+    filteredData.forEach(row => {
+      if (table === "delivery_courses" && (!("warehouse_id" in row) || row["warehouse_id"] === "" || row["warehouse_id"] == null)) {
+        row["warehouse_id"] = 90;
+      }
+    });
     let columnMap;
     if (table === 'notes') {
       columnMap = handler.getColumns_Note();
