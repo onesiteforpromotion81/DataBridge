@@ -28,6 +28,7 @@ export const loadHandlers = async () => {
     handlerName = handlerName ?? (optionName === 'locations' ? 'ロケーション' : undefined);
     handlerName = handlerName ?? (optionName === 'warehouses' ? '倉庫' : undefined);
     handlerName = handlerName ?? (optionName === 'deliveryCourses' ? '配送コース' : undefined);
+    handlerName = handlerName ?? (optionName === 'users' ? 'ユーザー' : undefined);
     handlers[handlerName] = module.default;
   }
 

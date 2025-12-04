@@ -41,6 +41,14 @@ export const uploadCSV = async (req, res) => {
       if (table !== "locations" && (!("is_active" in row) || row["is_active"] === "" || row["is_active"] == null)) {
         row["is_active"] = 1;
       }
+
+      if (table === "users") {
+        row.permission_ship_rare_item ??= 0;
+        row.default_branch_id ??= 90;
+        row.default_warehouse_id ??= 90;
+        row.password ??= row.MSM030; // optionally hash here
+        row.email ??= 'user@test.com';
+      }
     });
     filteredData.forEach(row => {
       if (table === "delivery_courses" && (!("warehouse_id" in row) || row["warehouse_id"] === "" || row["warehouse_id"] == null)) {
@@ -55,7 +63,6 @@ export const uploadCSV = async (req, res) => {
     } else {
       columnMap = handler.getColumns();
     }    
-
     const dbColumns = Object.values(columnMap);
     const csvColumns = Object.keys(columnMap); 
     if (filteredData.length === 0) {
@@ -82,7 +89,6 @@ export const uploadCSV = async (req, res) => {
     }
 
     const uniqueColumn = handler.getUniqueKey();  
-
     // Normalize to array
     const uniqueColumns = Array.isArray(uniqueColumn)
       ? uniqueColumn
@@ -124,17 +130,34 @@ export const uploadCSV = async (req, res) => {
     const placeholders = filteredData
       .map(() => `(${dbColumns.map(() => "?").join(",")})`)
       .join(",");
-
     const values = filteredData.flatMap(row =>
       csvColumns.map(col => row[col] ?? null)
     );
-
     const sql = `
       INSERT IGNORE INTO ${table} (${dbColumns.join(",")})
       VALUES ${placeholders}
     `;
 
     await pool.query(sql, values);
+
+    if (table === "users") {
+      // ↓ Retrieve ONLY the users inserted
+      const [users] = await pool.query(`SELECT id FROM users ORDER BY id DESC LIMIT ?`, [filteredData.length]);
+
+      if (users.length) {
+        const roleInsertValues = users
+          .map(u => `(1,'App\\\\Models\\\\User',${u.id})`)
+          .join(",");
+
+        const roleSQL = `
+          INSERT IGNORE INTO model_has_roles (role_id, model_type, model_id)
+          VALUES ${roleInsertValues}
+        `;
+
+        await pool.query(roleSQL);
+        console.log(`Assigned role_id=1 to ${users.length} users`);
+      }
+    }
 
     res.json({ message: "CSV processed successfully", inserted: filteredData.length, tableName: table });
 
