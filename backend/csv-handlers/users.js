@@ -20,6 +20,6 @@ export default class Users extends BaseActiveHandler {
   }
 
   getUniqueKey() {
-    return "code"; 
+    return ["code", "name", "updated_at"]; 
   }
 }

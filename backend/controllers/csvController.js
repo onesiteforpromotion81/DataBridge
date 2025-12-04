@@ -47,7 +47,7 @@ export const uploadCSV = async (req, res) => {
         row.default_branch_id ??= 90;
         row.default_warehouse_id ??= 90;
         row.password ??= row.MSM030; // optionally hash here
-        row.email ??= 'user@test.com';
+        row.email ??= `${row.MSM030}@test.com`;
       }
     });
     filteredData.forEach(row => {
