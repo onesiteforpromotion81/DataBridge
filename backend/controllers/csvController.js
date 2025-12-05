@@ -31,9 +31,10 @@ export const uploadCSV = async (req, res) => {
     let filteredData =
       table === "locations"
         ? handler.filterDataLocations(data)
+        : table === "item_partner_prices"
+        ? handler.filterDataItemPartnerPrices(data)
         : handler.filterData(data);
     if (!Array.isArray(filteredData)) return res.status(500).json({ error: "filterData() must return an array" });
-
     if (table === "locations") {
       filteredData = filterUniqueLocations(filteredData);
     }
@@ -48,6 +49,15 @@ export const uploadCSV = async (req, res) => {
         row.default_warehouse_id ??= 90;
         row.password ??= row.MSM030; // optionally hash here
         row.email ??= `${row.MSM030}@test.com`;
+      }
+
+      if (table === "item_partner_prices") {
+        if (row.TKM060 !== "99999999") {
+          row.TKM070 = row.TKM090;
+          row.TKM080 = row.TKM100;
+        } else {
+          row.TKM060 = "20250101";
+        }     
       }
     });
     filteredData.forEach(row => {

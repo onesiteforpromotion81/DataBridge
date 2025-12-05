@@ -29,6 +29,12 @@ export default class BaseActiveHandler extends BaseCSVHandler {
     });
   }
 
+  filterDataItemPartnerPrices(filters = {}) {
+    return this.data.filter(row => {
+      return applyFilters(row, filters, this.allowedColumns);
+    })
+  }
+
   /**
    * Shared column mapping
    */
