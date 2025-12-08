@@ -68,6 +68,15 @@ export const uploadCSV = async (req, res) => {
     if (table === "locations") {
       filteredData = filterUniqueLocations(filteredData);
     }
+
+    let items = [];
+
+    // Fetch item list only once when needed
+    if (table === "item_partner_prices") {
+      const result = await pool.query("SELECT id, code FROM items");
+      items = result[0];      
+    }       
+
     filteredData.forEach(row => {
       if (table !== "locations" && (!("is_active" in row) || row["is_active"] === "" || row["is_active"] == null)) {
         row["is_active"] = 1;
@@ -88,6 +97,16 @@ export const uploadCSV = async (req, res) => {
         } else {
           row.TKM060 = "20250101";
         }     
+         // ★ Find item id where code matches TKM040
+        const match = items.find(item => item.code === Number(row.TKM040));
+        console.log("match: ", match);
+
+        // ★ Attach item_id to row
+        row.item_id = match ? match.id : null;     // <──	assign here
+        console.log("item_id: ", row.item_id);
+
+        // (optional) Log if missing
+        if (!match) console.log(`[WARNING] Item not found → ${row.TKM040}`);
       }
     });
     filteredData.forEach(row => {
