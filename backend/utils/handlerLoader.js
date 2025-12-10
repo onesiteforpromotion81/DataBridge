@@ -32,6 +32,8 @@ export const loadHandlers = async () => {
     handlerName = handlerName ?? (optionName === 'itemPartnerPrices' ? '個別単価' : undefined);
     handlerName = handlerName ?? (optionName === 'manufactureTypes' ? '製造区分' : undefined);
     handlerName = handlerName ?? (optionName === 'slipTypes' ? '伝票種別' : undefined);
+    handlerName = handlerName ?? (optionName === 'saleSizes' ? '年商規模' : undefined);
+    handlerName = handlerName ?? (optionName === 'storageTypes' ? '貯蔵区分' : undefined);
     handlers[handlerName] = module.default;
   }
 
