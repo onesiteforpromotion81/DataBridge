@@ -95,6 +95,33 @@ export const uploadCSV = async (req, res) => {
         row["warehouse_id"] = 90;
       }
     });
+    if (table === "item_partner_prices") {
+      for (const row of filteredData) {
+
+        // 1. Resolve partner_id using partners.code = TKM030
+        const [partnerRows] = await pool.query(
+          `SELECT id FROM partners WHERE code = ? LIMIT 1`,
+          [row.TKM030]
+        );
+        row.partner_id = partnerRows.length ? partnerRows[0].id : null;
+
+        // 2. Resolve item_id using items.code = TKM040
+        const [itemRows] = await pool.query(
+          `SELECT id FROM items WHERE code = ? LIMIT 1`,
+          [row.TKM040]
+        );
+        row.item_id = itemRows.length ? itemRows[0].id : null;
+
+        // Optional: block rows that failed lookup
+        if (!row.partner_id || !row.item_id) {
+          console.log(`Skipping row due to missing partner/item:`, row);
+          row.__skip = true;
+        }
+      }
+
+      // Remove skipped rows
+      filteredData = filteredData.filter(r => !r.__skip);
+    }
     let columnMap;
     if (table === 'notes') {
       columnMap = handler.getColumns_Note();
