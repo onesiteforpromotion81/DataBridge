@@ -61,7 +61,7 @@ export const uploadCSV = async (req, res) => {
     let filteredData =
       table === "locations"
         ? handler.filterDataLocations(data)
-        : table === "item_partner_prices"
+        : table === "item_partner_prices" || table === "item_connections" 
         ? handler.filterDataItemPartnerPrices(data)
         : handler.filterData(data);
     if (!Array.isArray(filteredData)) return res.status(500).json({ error: "filterData() must return an array" });
@@ -141,6 +141,36 @@ export const uploadCSV = async (req, res) => {
       // Remove skipped rows
       filteredData = filteredData.filter(r => !r.__skip);
     }
+    if (table === "item_connections") {
+      for (const row of filteredData) {
+        // 1. Resolve partner_id
+        const [partnerRows] = await pool.query(
+          `SELECT id FROM partners WHERE code = ? LIMIT 1`,
+          [row.S0101]
+        );
+        row.partner_id = partnerRows.length ? partnerRows[0].id : null;
+
+        // 2. Resolve item_id
+        const [itemRows] = await pool.query(
+          `SELECT id FROM items WHERE code = ? LIMIT 1`,
+          [row.S02]
+        );
+        row.item_id = itemRows.length ? itemRows[0].id : null;
+
+        // Skip rows missing required IDs
+        if (!row.partner_id || !row.item_id) {
+          console.log("Skipping item_connections row:", {
+            partner_id: row.partner_id,
+            item_id: row.item_id
+          });
+          row.__skip = true;
+        }
+      }
+
+      // Remove skipped rows
+      filteredData = filteredData.filter(r => !r.__skip);
+    }
+
     let columnMap;
     if (table === 'notes') {
       columnMap = handler.getColumns_Note();
