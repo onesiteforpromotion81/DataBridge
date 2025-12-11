@@ -61,13 +61,22 @@ export const uploadCSV = async (req, res) => {
     let filteredData =
       table === "locations"
         ? handler.filterDataLocations(data)
-        : table === "item_partner_prices"
+        : table === "item_partner_prices" || table === "item_connections" 
         ? handler.filterDataItemPartnerPrices(data)
         : handler.filterData(data);
     if (!Array.isArray(filteredData)) return res.status(500).json({ error: "filterData() must return an array" });
     if (table === "locations") {
       filteredData = filterUniqueLocations(filteredData);
     }
+
+    let items = [];
+
+    // Fetch item list only once when needed
+    if (table === "item_partner_prices") {
+      const result = await pool.query("SELECT id, code FROM items");
+      items = result[0];      
+    }       
+
     filteredData.forEach(row => {
       if (table !== "locations" && (!("is_active" in row) || row["is_active"] === "" || row["is_active"] == null)) {
         row["is_active"] = 1;
@@ -88,6 +97,16 @@ export const uploadCSV = async (req, res) => {
         } else {
           row.TKM060 = "20250101";
         }     
+         // ★ Find item id where code matches TKM040
+        const match = items.find(item => item.code === Number(row.TKM040));
+        console.log("match: ", match);
+
+        // ★ Attach item_id to row
+        row.item_id = match ? match.id : null;     // <──	assign here
+        console.log("item_id: ", row.item_id);
+
+        // (optional) Log if missing
+        if (!match) console.log(`[WARNING] Item not found → ${row.TKM040}`);
       }
     });
     filteredData.forEach(row => {
@@ -122,6 +141,36 @@ export const uploadCSV = async (req, res) => {
       // Remove skipped rows
       filteredData = filteredData.filter(r => !r.__skip);
     }
+    if (table === "item_connections") {
+      for (const row of filteredData) {
+        // 1. Resolve partner_id
+        const [partnerRows] = await pool.query(
+          `SELECT id FROM partners WHERE code = ? LIMIT 1`,
+          [row.S0101]
+        );
+        row.partner_id = partnerRows.length ? partnerRows[0].id : null;
+
+        // 2. Resolve item_id
+        const [itemRows] = await pool.query(
+          `SELECT id FROM items WHERE code = ? LIMIT 1`,
+          [row.S02]
+        );
+        row.item_id = itemRows.length ? itemRows[0].id : null;
+
+        // Skip rows missing required IDs
+        if (!row.partner_id || !row.item_id) {
+          console.log("Skipping item_connections row:", {
+            partner_id: row.partner_id,
+            item_id: row.item_id
+          });
+          row.__skip = true;
+        }
+      }
+
+      // Remove skipped rows
+      filteredData = filteredData.filter(r => !r.__skip);
+    }
+
     let columnMap;
     if (table === 'notes') {
       columnMap = handler.getColumns_Note();
