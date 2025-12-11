@@ -8,7 +8,9 @@ export default class ItemPartnerPrices extends BaseActiveHandler {
     TKM060: "start_date",
     TKM070: "unit_price",
     TKM080: "case_price",
-    TKM120: "updated_at"
+    TKM120: "updated_at",
+    partner_id: "partner_id",
+    item_id: "item_id"
   }
 
   getTableName() {
