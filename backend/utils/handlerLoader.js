@@ -37,6 +37,7 @@ export const loadHandlers = async () => {
     handlerName = handlerName ?? (optionName === 'partners' ? '取引先' : undefined);
     handlerName = handlerName ?? (optionName === 'items' ? '商品管理' : undefined);
     handlerName = handlerName ?? (optionName === 'itemConnections' ? '商品関連付' : undefined);
+    handlerName = handlerName ?? (optionName === 'itemCategories' ? '大中小分類' : undefined);
     handlers[handlerName] = module.default;
   }
 
