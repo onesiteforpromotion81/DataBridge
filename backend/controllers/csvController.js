@@ -28,7 +28,6 @@ export const uploadCSV = async (req, res) => {
       return res.status(500).json({ error: "Handler must implement getTableName() and getColumns()" });
     }
     const table = handler.getTableName();
-    console.log("tablename:", table);
     if (table === "partners") {
       const processPartner = (await import("./F0PartnerImportService.js")).processPartner;
 
@@ -42,6 +41,21 @@ export const uploadCSV = async (req, res) => {
         message: "Partner CSV processed successfully",
         inserted,
         tableName: "partners (multi-table import)"
+      });
+    }
+    if (table === "items") {
+      const importOneItem = (await import("./F0PartnerImportService.js")).importOneItem;
+
+      let inserted = 0;
+      for (const row of data) {
+        const success = await importOneItem(row);
+        if (success) inserted++;
+      }
+
+      return res.json({ 
+        message: "Partner CSV processed successfully",
+        inserted,
+        tableName: "items (multi-table import)"
       });
     }
     let filteredData =
