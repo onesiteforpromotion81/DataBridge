@@ -99,11 +99,9 @@ export const uploadCSV = async (req, res) => {
         }     
          // ★ Find item id where code matches TKM040
         const match = items.find(item => item.code === Number(row.TKM040));
-        console.log("match: ", match);
 
         // ★ Attach item_id to row
         row.item_id = match ? match.id : null;     // <──	assign here
-        console.log("item_id: ", row.item_id);
 
         // (optional) Log if missing
         if (!match) console.log(`[WARNING] Item not found → ${row.TKM040}`);
@@ -169,6 +167,97 @@ export const uploadCSV = async (req, res) => {
 
       // Remove skipped rows
       filteredData = filteredData.filter(r => !r.__skip);
+    }
+    if (table === "item_categories") {
+      const finalRows = [];
+
+      for (const row of filteredData) {
+        const code = row.MSM030;
+        const name = row.MSM040;
+        const updatedAt = row.MSM110;
+        const taxCode = row.MSM060_1;
+
+        // Get alcohol tax category
+        const [taxRows] = await pool.query(
+          `SELECT id FROM alcohol_tax_categories WHERE code = ? LIMIT 1`,
+          [taxCode]
+        );
+        const alcohol_tax_category_id = taxRows.length ? taxRows[0].id : null;
+
+        const len = code?.length ?? 0;
+
+        //
+        // PASS 1 — depth = 1
+        //
+        let combination_code_1;
+        if (len === 5) {
+          combination_code_1 = "00" + code[0];
+        } else {
+          combination_code_1 = "000";
+        }
+
+        finalRows.push({
+          MSM030: combination_code_1,
+          MSM040: name,
+          MSM110: updatedAt,
+          depth: 1,
+          combination_code: combination_code_1,
+          alcohol_tax_category_id,
+          is_active: 1,
+        });
+
+        //
+        // PASS 2 — depth = 2
+        //
+        let combination_code_2;
+        if (len === 5) {
+          combination_code_2 = "00" + code[0] + "0" + code[1] + code[2];
+        } else if (len === 4) {
+          combination_code_2 = "0000" + code[0] + code[1];
+        }
+
+        finalRows.push({
+          MSM030: combination_code_2,
+          MSM040: name,
+          MSM110: updatedAt,
+          depth: 2,
+          combination_code: combination_code_2,
+          alcohol_tax_category_id,
+          is_active: 1,
+        });
+
+        //
+        // PASS 3 — depth = 3
+        //
+        let combination_code_3;
+        if (len === 5) {
+          combination_code_3 =
+            "00" +
+            code[0] +
+            "0" +
+            code[1] +
+            code[2] +
+            "0" +
+            code[3] +
+            code[4];
+        } else if (len === 4) {
+          combination_code_3 =
+            "0000" + code[0] + code[1] + "0" + code[2] + code[3];
+        }
+
+        finalRows.push({
+          MSM030: combination_code_3,
+          MSM040: name,
+          MSM110: updatedAt,
+          depth: 3,
+          combination_code: combination_code_3,          
+          alcohol_tax_category_id,
+          is_active: 1,
+        });
+      }
+
+      // Now overwrite filteredData with the 3× expanded rows
+      filteredData = finalRows;
     }
 
     let columnMap;
@@ -249,6 +338,7 @@ export const uploadCSV = async (req, res) => {
     const values = filteredData.flatMap(row =>
       csvColumns.map(col => row[col] ?? null)
     );
+    console.log(values);
     const sql = `
       INSERT IGNORE INTO ${table} (${dbColumns.join(",")})
       VALUES ${placeholders}
