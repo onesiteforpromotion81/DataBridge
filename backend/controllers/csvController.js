@@ -201,7 +201,6 @@ export const uploadCSV = async (req, res) => {
           MSM040: name,
           MSM110: updatedAt,
           depth: 1,
-          combination_code: combination_code_1,
           alcohol_tax_category_id,
           is_active: 1,
         });
@@ -221,7 +220,6 @@ export const uploadCSV = async (req, res) => {
           MSM040: name,
           MSM110: updatedAt,
           depth: 2,
-          combination_code: combination_code_2,
           alcohol_tax_category_id,
           is_active: 1,
         });
@@ -249,8 +247,7 @@ export const uploadCSV = async (req, res) => {
           MSM030: combination_code_3,
           MSM040: name,
           MSM110: updatedAt,
-          depth: 3,
-          combination_code: combination_code_3,          
+          depth: 3,      
           alcohol_tax_category_id,
           is_active: 1,
         });
