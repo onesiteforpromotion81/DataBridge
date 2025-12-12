@@ -338,7 +338,6 @@ export const uploadCSV = async (req, res) => {
     const values = filteredData.flatMap(row =>
       csvColumns.map(col => row[col] ?? null)
     );
-    console.log(values);
     const sql = `
       INSERT IGNORE INTO ${table} (${dbColumns.join(",")})
       VALUES ${placeholders}
