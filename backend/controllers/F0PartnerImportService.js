@@ -1,6 +1,6 @@
 import pool from "../db/connections.js";
 import { supplierEnum, buyerEnum, slipFractionEnum, partnerPrintEnum, displayTaxEnum, calcMethodEnum, taxFractionEnum, depositPlanEnum, creditErrorTypeEnum, weekEnum, paymentMethodEnum, cashCollectionMethodEnum, itemTypeEnum, unitPriceTypeEnum, categoryLevels } from "../common/helpers/enumMaps.js";
-import { idFrom } from "../common/helpers/idResolver.js";
+import { idFrom, idOrDefault } from "../common/helpers/idResolver.js";
 
 export async function processPartner(row){
   const conn = await pool.getConnection();
@@ -45,7 +45,7 @@ export async function processPartner(row){
         VALUES (?,?,?,?,?,?,?,?,?,?)
       `,[
         supplier_id,
-        await idFrom("branches",row.T0401),
+        await idOrDefault("branches",row.T0401),
         await idFrom("departments",row.T0403),
         await idFrom("users",row.T0405),
         slipFractionEnum[row.T0609],
@@ -81,7 +81,7 @@ export async function processPartner(row){
           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
       `,[
           buyer_id,
-          await idFrom("branches",row.T0401),
+          await idOrDefault("branches",row.T0401),
           await idFrom("departments",row.T0403),
           await idFrom("users",row.T0405),
           await idFrom("delivery_courses",row.T0801),
@@ -339,7 +339,7 @@ export async function importOneItem(row) {
     // ----------------------------------------------------
     const { cat1, cat2, cat3 } = categoryLevels(row.S1201);
 
-    const manufacturer_id = await idFrom("manufacturers", row.S1205);
+    const manufacturer_id = await idOrDefault("manufacturers", row.S1205);
     const brand_id        = await idFrom("brands", row.S1205);
 
     const container_type_id   = await idFrom("container_types", row.S1207) ?? 1;
