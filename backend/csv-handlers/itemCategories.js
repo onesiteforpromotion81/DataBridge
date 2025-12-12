@@ -17,6 +17,6 @@ export default class ItemCategories extends BaseActiveHandler {
   }
 
   getUniqueKey() {
-    return ["combination_code", "name", "depth", "updated_at"]; 
+    return ["code", "name", "depth", "updated_at"]; 
   }
 }
