@@ -40,6 +40,5 @@ export const loadHandlers = async () => {
     handlerName = handlerName ?? (optionName === 'itemCategories' ? '大中小分類' : undefined);
     handlers[handlerName] = module.default;
   }
-
   return handlers;
 };

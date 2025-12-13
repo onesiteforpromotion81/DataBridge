@@ -22,7 +22,6 @@ export const uploadCSV = async (req, res) => {
     const data = await parseCSVShiftJIS(filePath);
     const HandlerClass = handlers[type];
     const handler = new HandlerClass(data);
-
     // Validation
     if (!handler.getTableName || !handler.getColumns) {
       return res.status(500).json({ error: "Handler must implement getTableName() and getColumns()" });
