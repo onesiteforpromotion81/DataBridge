@@ -1,4 +1,4 @@
-name: Deploy Node App
+name: Deploy DataBridge Node App
 
 on:
   push:
@@ -10,14 +10,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to VPS
+      - name: Deploy Node app to VPS
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
+            # Load NVM (Node is installed via NVM under root)
+            export NVM_DIR="/root/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+
+            # Go to Node project directory
             cd ${{ secrets.VPS_APP_DIR }}
+
+            # Pull latest code
             git pull origin main
+
+            # Install dependencies
             npm install --production
+
+            # Restart only the Node app
             pm2 restart databridge-node
