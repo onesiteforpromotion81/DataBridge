@@ -14,7 +14,7 @@ export const loadHandlers = async () => {
     const module = await import(filePath);
     const optionName = file.replace(".js", "");
     let handlerName;
-    handlerName = handlerName ?? (optionName === 'accountClassifications' ? '金種1' : undefined);
+    handlerName = handlerName ?? (optionName === 'accountClassifications' ? '金種' : undefined);
     handlerName = handlerName ?? (optionName === 'businessTypes' ? '業務形態' : undefined);
     handlerName = handlerName ?? (optionName === 'manufacturers' ? 'メーカー' : undefined);
     handlerName = handlerName ?? (optionName === 'locationConditions' ? '立地条件' : undefined);
