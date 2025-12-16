@@ -1,30 +1,57 @@
 import pool from "../db/connections.js";
 import { supplierEnum, buyerEnum, slipFractionEnum, partnerPrintEnum, displayTaxEnum, calcMethodEnum, taxFractionEnum, depositPlanEnum, creditErrorTypeEnum, weekEnum, paymentMethodEnum, cashCollectionMethodEnum, itemTypeEnum, unitPriceTypeEnum, categoryLevels } from "../common/helpers/enumMaps.js";
 import { idFrom, idOrDefault } from "../common/helpers/idResolver.js";
+import { client_id, default_date } from "../common/constants_6_15.js";
+import { lookup } from "dns";
 
-export async function processPartner(row){
-  const conn = await pool.getConnection();
-  await conn.beginTransaction();
+function parseCsvDate(value) {
+  if (!value || value === '0' || value.trim() === '') return null;
+  // Expect YYYYMMDD
+  if (/^\d{8}$/.test(value)) {
+    return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}`;
+  }
+
+  return null;
+}
+
+function normalizeInt(value) {
+  if (value == null) return null;
+
+  const v = value.trim();
+  if (v === '') return null;
+  if (v === '0') return null;
+
+  return Number(v);
+}
+
+export async function processPartner(row, conn) {
+  // const conn = await pool.getConnection();
+  // await conn.beginTransaction();
   try {
     const [exists] = await conn.query(
       "SELECT id FROM partners WHERE code = ? LIMIT 1",
       [row.T0101]
     );
 
-    if (exists.length > 0) {
-      conn.release();
-      console.log(`Partner skipped (already exists) - code: ${row.T0101}`);
-      return { skipped: true };
-    }
+    if (exists.length > 0) return null;
+
     // Insert Partner
-    const partnerSQL = `
+    const [p] = await conn.query(`
       INSERT INTO partners
-        (code, partner_serial_number, nickname, name_main, kana_name, address1, address2, postal_code, tel, fax, entry_note, start_of_trade_date, end_of_trade_date, updated_at)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-    `;
-    const [p] = await conn.query(partnerSQL, [
-      row.T0101, row.T0510, row.T05103, row.T10, row.T11, row.T13,
-      row.T14, `${row.T15}-${row.T1501}`, row.T16, row.T17, row.T23, row.T27, row.T28, row.T29
+        (client_id, creator_id, last_updater_id, code,
+        partner_serial_number, nickname, name_main, kana_name,
+        address1, address2, postal_code, tel, fax, entry_note,
+        start_of_trade_date, end_of_trade_date, updated_at)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    `, [
+      client_id, client_id, client_id,
+      row.T0101, row.T0510, row.T05103,
+      row.T10, row.T11, row.T13, row.T14,
+      `${row.T15}-${row.T1501}`,
+      row.T16, row.T17, row.T23,
+      parseCsvDate(row.T27),
+      parseCsvDate(row.T28),
+      row.T29
     ]);
     const partner_id = p.insertId;
 
@@ -34,16 +61,18 @@ export async function processPartner(row){
     const isSupplier = Number(row.T02) <= 9;
 
     if(isSupplier){
-      const [s] = await conn.query(`INSERT INTO suppliers (partner_id, partner_category) VALUES (?,?)`,
-        [partner_id, supplierEnum(row.T02)]
+      const [s] = await conn.query(`INSERT INTO suppliers (client_id, partner_id, partner_category) VALUES (?,?,?)`,
+        [client_id, partner_id, supplierEnum(row.T02)]
       );
       const supplier_id = s.insertId;
       await conn.query(`
         INSERT INTO supplier_details
-          (supplier_id, branch_id, department_id, salesman_id, slip_fraction, partner_print_type,
+          (code, start_date, supplier_id, branch_id, department_id, salesman_id, slip_fraction, partner_print_type,
             display_tax_type, calculation_method, tax_fraction, payment_method)
-        VALUES (?,?,?,?,?,?,?,?,?,?)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
       `,[
+        client_id,
+        parseCsvDate(default_date),
         supplier_id,
         await idOrDefault("branches",row.T0401),
         await idFrom("departments",row.T0403),
@@ -56,13 +85,14 @@ export async function processPartner(row){
         paymentMethodEnum[row.T2501]
       ]);
     } else {
-      const [b] = await conn.query(`INSERT INTO buyers (partner_id, partner_category, company_id, store_code, business_type_id, location_condition_id, sale_size_id, credit_error_type, credit_max, slip_note)
-        VALUES (?,?,?,?,?,?,?,?,?,?)`,
+      const [b] = await conn.query(`INSERT INTO buyers (client_id, partner_id, partner_category, company_id, store_code, business_type_id, location_condition_id, sale_size_id, credit_error_type, credit_max, slip_note)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
         [
+          client_id,
           partner_id,
           buyerEnum(row.T02),
           await idFrom("companies",row.T0511),
-          row.T0513,
+          normalizeInt(row.T0513),
           await idFrom("business_types",row.T0601),
           await idFrom("location_conditions",row.T0603),
           await idFrom("sale_sizes",row.T0605),
@@ -74,12 +104,16 @@ export async function processPartner(row){
       const buyer_id = b.insertId;
       await conn.query(`
           INSERT INTO buyer_details
-            (buyer_id, branch_id, department_id, salesman_id, delivery_course_id,
+            (code, start_date, bill_collector_id, slip_type_id, buyer_id, branch_id, department_id, salesman_id, delivery_course_id,
             holiday_delivery_course_id, delivery_route, delivery_warehouse_id,
             holiday_delivery_warehouse_id, slip_fraction, partner_print_type,
             display_tax_type, calculation_method, tax_fraction, payment_method, cash_collection_method, has_key)
-          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
       `,[
+          client_id,
+          parseCsvDate(default_date),
+          client_id,
+          client_id,
           buyer_id,
           await idOrDefault("branches",row.T0401),
           await idFrom("departments",row.T0403),
@@ -102,6 +136,7 @@ export async function processPartner(row){
 
     // Ledger Closing Pattern
     // Map of closing date suffixes
+    const closingRows = [];
     const closingDateSuffixes = [7, 9, 11, 13, 15, 17];
 
     // Deposit plan enum conversion from T1821
@@ -122,84 +157,80 @@ export async function processPartner(row){
 
         // Insert only if closing date exists and is non-zero
         if (closingDate && Number(closingDate) !== 0) {
-          await conn.query(`
-            INSERT INTO partner_closing_details (
-              partner_id,
-              ledger_classification_id,
-              closing_date,
-              deposit_plan
-            )
-            VALUES (?, ?, ?, ?)
-          `, [
-            partner_id,
-            ledgerClassificationId,
-            closingDate,
-            deposit_plan
+          // await conn.query(`
+          //   INSERT INTO partner_closing_details (
+          //     partner_id, client_id,
+          //     ledger_classification_id,
+          //     closing_date,
+          //     deposit_plan, deposit_date, updated_by
+          //   )
+          //   VALUES (?, ?, ?, ?, ?, ?, ?)
+          // `, [
+          //   partner_id,
+          //   client_id,
+          //   ledgerClassificationId,
+          //   closingDate,
+          //   deposit_plan,
+          //   Number(default_date), client_id
+          // ]);
+          closingRows.push([
+            partner_id, client_id, ledgerClassificationId,
+            closingDate, deposit_plan, Number(default_date), client_id
           ]);
         }
-      }
+      }      
+    }
+
+    if (closingRows.length) {
+      await conn.query(`
+        INSERT INTO partner_closing_details
+          (partner_id, client_id, ledger_classification_id,
+          closing_date, deposit_plan, deposit_date, updated_by)
+        VALUES ?
+      `, [closingRows]);
     }
 
     // Partner Timetables (T2201 + T2203_x fields)
     const timetableMode = Number(row.T2201); // 0, 1, or 2
 
     // Determine which week rows to insert
-    let weeksToInsert = [];
-    if (timetableMode === 0) {
-      weeksToInsert = [1, 2, 3, 4, 5];
-    } else if (timetableMode === 1) {
-      weeksToInsert = [1, 3, 5];
-    } else if (timetableMode === 2) {
-      weeksToInsert = [2, 4];
-    }
+    const weeks =
+      timetableMode === 0 ? [1,2,3,4,5] :
+      timetableMode === 1 ? [1,3,5] :
+      timetableMode === 2 ? [2,4] : [];
 
-    // Prepare enum mapping for timetable
-    const timetableEnum = {
-      0: "SELF",
-      1: "HOLIDAY"
-    };
-
-    // Convert each T2203 field to enum
-    const sunday    = timetableEnum[row.T2203_1] ?? null;
-    const monday    = timetableEnum[row.T2203_2] ?? null;
-    const tuesday   = timetableEnum[row.T2203_3] ?? null;
-    const wednesday = timetableEnum[row.T2203_4] ?? null;
-    const thursday  = timetableEnum[row.T2203_5] ?? null;
-    const friday    = timetableEnum[row.T2203_6] ?? null;
-    const saturday  = timetableEnum[row.T2203_7] ?? null;
+    const map = { 0: "SELF", 1: "HOLIDAY" };
+    const days = [
+      map[row.T2203_1] ?? null,
+      map[row.T2203_2] ?? null,
+      map[row.T2203_3] ?? null,
+      map[row.T2203_4] ?? null,
+      map[row.T2203_5] ?? null,
+      map[row.T2203_6] ?? null,
+      map[row.T2203_7] ?? null
+    ];
 
     // Insert rows
-    for (const week of weeksToInsert) {
+    if (weeks.length) {
       await conn.query(`
-        INSERT INTO partner_timetables (
-          partner_id, week,
-          sunday, monday, tuesday, wednesday, thursday, friday, saturday
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
-        partner_id,
-        week,
-        sunday,
-        monday,
-        tuesday,
-        wednesday,
-        thursday,
-        friday,
-        saturday
-      ]);
+        INSERT INTO partner_timetables
+          (partner_id, week, partner_timetable_plan_id,
+          sunday, monday, tuesday, wednesday,
+          thursday, friday, saturday)
+        VALUES ?
+      `, [weeks.map(w => [partner_id, w, client_id, ...days])]);
     }
-
-    await conn.commit();
-    conn.release();
     return true;
 
   } catch(err){
-    await conn.rollback();
-    conn.release();
+    // await conn.rollback();
     console.error("Row failed",row,err.message);
     return false;
+  } finally {
+    // conn.release();
   }
 }
+
 
 // export async function importOneItem(row) {
 
