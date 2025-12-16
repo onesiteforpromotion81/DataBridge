@@ -28,29 +28,41 @@ export const uploadCSV = async (req, res) => {
       return res.status(500).json({ error: "Handler must implement getTableName() and getColumns()" });
     }
     const table = handler.getTableName();
+
     if (table === "partners") {
+
       const processPartner = (await import("./F0PartnerImportService.js")).processPartner;
+
       const conn = await pool.getConnection();
+
       let inserted = 0;
+
       try {
         await conn.beginTransaction();
-      for (const row of data) {
-        const success = await processPartner(row, conn);
-        if (success) inserted++;
-      }
-      await conn.commit();
+
+        for (const row of data) {
+          const success = await processPartner(row, conn);
+          if (success) inserted++;
+        }
+
+        await conn.commit();
+        
+        return res.json({ 
+          message: "Partner CSV processed successfully",
+          inserted,
+          tableName: "partners (multi-table import)"
+        });
       } catch (err) {
         await conn.rollback();
-        throw err;
+        console.error("Partner CSV import failed:", err);
+
+        return res.status(500).json({
+          message: "Partner CSV import failed",
+          error: err.message
+        });
       } finally {
         conn.release();
       }
-
-      return res.json({ 
-        message: "Partner CSV processed successfully",
-        inserted,
-        tableName: "partners (multi-table import)"
-      });
     }
     if (table === "items") {
       const importOneItem = (await import("./F0PartnerImportService.js")).importOneItem;      

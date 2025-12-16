@@ -74,9 +74,9 @@ export async function processPartner(row, conn) {
         client_id,
         parseCsvDate(default_date),
         supplier_id,
-        await idOrDefault("branches",row.T0401),
-        await idFrom("departments",row.T0403),
-        await idFrom("users",row.T0405),
+        await idOrDefault(conn, "branches",row.T0401),
+        await idFrom(conn, "departments",row.T0403),
+        await idFrom(conn, "users",row.T0405),
         slipFractionEnum[row.T0609],
         partnerPrintEnum[row.T0621],
         displayTaxEnum[row.T0701],
@@ -91,11 +91,11 @@ export async function processPartner(row, conn) {
           client_id,
           partner_id,
           buyerEnum(row.T02),
-          await idFrom("companies",row.T0511),
+          await idFrom(conn, "companies",row.T0511),
           normalizeInt(row.T0513),
-          await idFrom("business_types",row.T0601),
-          await idFrom("location_conditions",row.T0603),
-          await idFrom("sale_sizes",row.T0605),
+          await idFrom(conn, "business_types",row.T0601),
+          await idFrom(conn, "location_conditions",row.T0603),
+          await idFrom(conn, "sale_sizes",row.T0605),
           creditErrorTypeEnum[row.T2101],
           row.T2103,
           row.T24,
@@ -115,14 +115,14 @@ export async function processPartner(row, conn) {
           client_id,
           client_id,
           buyer_id,
-          await idOrDefault("branches",row.T0401),
-          await idFrom("departments",row.T0403),
-          await idFrom("users",row.T0405),
-          await idFrom("delivery_courses",row.T0801),
-          await idFrom("delivery_courses",row.T0801),
+          await idOrDefault(conn, "branches",row.T0401),
+          await idFrom(conn, "departments",row.T0403),
+          await idFrom(conn, "users",row.T0405),
+          await idFrom(conn, "delivery_courses",row.T0801),
+          await idFrom(conn, "delivery_courses",row.T0801),
           row.T0803,
-          await idFrom("warehouses",row.T0805),
-          await idFrom("warehouses",row.T0805),
+          await idFrom(conn, "warehouses",row.T0805),
+          await idFrom(conn, "warehouses",row.T0805),
           slipFractionEnum[row.T0609],
           partnerPrintEnum[row.T0621],
           displayTaxEnum[row.T0701],
@@ -157,22 +157,6 @@ export async function processPartner(row, conn) {
 
         // Insert only if closing date exists and is non-zero
         if (closingDate && Number(closingDate) !== 0) {
-          // await conn.query(`
-          //   INSERT INTO partner_closing_details (
-          //     partner_id, client_id,
-          //     ledger_classification_id,
-          //     closing_date,
-          //     deposit_plan, deposit_date, updated_by
-          //   )
-          //   VALUES (?, ?, ?, ?, ?, ?, ?)
-          // `, [
-          //   partner_id,
-          //   client_id,
-          //   ledgerClassificationId,
-          //   closingDate,
-          //   deposit_plan,
-          //   Number(default_date), client_id
-          // ]);
           closingRows.push([
             partner_id, client_id, ledgerClassificationId,
             closingDate, deposit_plan, Number(default_date), client_id
@@ -225,123 +209,19 @@ export async function processPartner(row, conn) {
   } catch(err){
     // await conn.rollback();
     console.error("Row failed",row,err.message);
+    if (
+      err.code === 'PROTOCOL_CONNECTION_LOST' ||
+      err.code === 'ECONNRESET' ||
+      err.code === 'ETIMEDOUT' ||
+      err.fatal
+    ) {
+      throw err; // 🔥 VERY IMPORTANT
+    }
     return false;
   } finally {
     // conn.release();
   }
 }
-
-
-// export async function importOneItem(row) {
-
-//   const conn = await pool.getConnection();
-//   await conn.beginTransaction();
-//   const { cat1, cat2, cat3 } = categoryLevels(row.S1201);
-
-//   // get manufacturer & brand
-//   const manufacturer_id = await idFrom("manufacturers", row.S1205);
-//   const brand_id        = await idFrom("brands", row.S1205);
-
-//   // lookups
-//   const container_type_id   = await idFrom("container_types", row.S1207) ?? 1;
-//   const place_of_origin_id  = await idFrom("place_of_origins", row.S1701);
-//   const main_material_id    = await idFrom("materials", row.S1703);
-//   const manufacture_type_id = await idFrom("manufacture_types", row.S1705);
-//   const storage_type_id     = await idFrom("storage_types", row.S1706);
-//   const cat1_id = await idFrom("item_categories", cat1);
-//   const cat2_id = await idFrom("item_categories", cat2) ?? "000";
-//   const cat3_id = await idFrom("item_categories", cat3);
-
-//   // ---------------------- INSERT => items -------------------------
-//   const [item] = await conn.query(`
-//       INSERT INTO items (
-//         code,type,nickname,name_main,kana,abbreviation,abbreviation_kana,
-//         volume,capacity_case,item_category1_id,item_category2_id,item_category3_id,
-//         manufacturer_id,brand_id,is_set_registration,is_manage_container_deposit,
-//         container_type_id,is_exclude_rebates,is_different_treatment,unit_price_type,
-//         place_of_origin_id,main_material_id,manufacture_type_id,storage_type_id,
-//         alcohol_content,sake_meter_value,acidity_level,measurement_case_width,
-//         measurement_case_depth,measurement_case_height,measurement_case_weight,
-//         measurement_unit_width,measurement_unit_depth,measurement_unit_height,
-//         measurement_unit_weight,start_of_sale_date,end_of_sale_date,updated_at
-//       ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-//   `,[
-//       row.S0101, itemTypeEnum[row.S02], row.S0313, row.S05, row.S06, row.S07, row.S08,
-//       row.S09, row.S11, cat1_id, cat2_id, cat3_id,
-//       manufacturer_id, brand_id, row.S1213, row.S1215,
-//       container_type_id,row.S1223,row.S1225,unitPriceTypeEnum[row.S1226],
-//       place_of_origin_id, main_material_id, manufacture_type_id, storage_type_id,
-//       row.S1711,row.S1713,row.S1715,row.S1719,
-//       row.S1721,row.S1723,row.S1725,
-//       row.S1727,row.S1729,row.S1731,row.S1733,
-//       row.S20,row.S21,row.S22
-//   ]);
-
-//   const item_id = item.insertId;
-//   // ---------------------------------------------------------------
-
-
-
-//   // ---------------- INSERT item_search_information ---------------
-//   const total_value = row.S0307 + row.S0309;
-
-//   const searchEntries = [
-//     {code: total_value,   type:"JAN"},
-//     {code: row.S0311,     type:"SDP"},
-//     {code: row.S0315,     type:"OTHER"}
-//   ];
-
-//   for(const s of searchEntries){
-//     if(s.code) {
-//       await conn.query(
-//         `INSERT INTO item_search_information (item_id,search_string,code_type,quantity_type) 
-//          VALUES (?,?,?, 'PIECE')`,
-//         [item_id,s.code,s.type]
-//       );
-//     }
-//   }
-//   // ---------------------------------------------------------------
-
-
-
-//   // ---------------------- ITEM PRICE INSERT HELPER ---------------
-//   async function insertPrice(seq){
-//     const dKey = `S1601_${seq}`;
-//     const unitKey = `S1603_${seq}`;
-//     const caseKey = `S1605_${seq}`;
-//     const altUnitKey = `S1609_${seq}`;
-//     const altCaseKey = `S1611_${seq}`;
-
-//     const isDefault = row[dKey] == "99999999";
-
-//     await conn.query(`
-//       INSERT INTO item_prices 
-//       (item_id,start_date,${priceColumnNames(seq)}) 
-//       VALUES (?,?,?,?)
-//     `,[
-//       item_id,
-//       isDefault ? "20250101" : row[dKey],
-//       isDefault ? row[unitKey] : row[altUnitKey],
-//       isDefault ? row[caseKey] : row[altCaseKey],
-//     ]);
-//   }
-
-//   function priceColumnNames(seq){
-//     return {
-//       1:"producer_unit_price, producer_case_price",
-//       2:"sale_unit_price, sale_case_price",
-//       3:"sub_unit_price, sub_case_price",
-//       4:"retail_unit_price, retail_case_price",
-//       5:"tax_exempt_unit_price, tax_exempt_case_price"
-//     }[seq];
-//   }
-
-//   for(let i=1;i<=5;i++) await insertPrice(i);
-//   // ---------------------------------------------------------------
-//   await conn.commit();
-//   conn.release();
-//   return true;
-// }
 
 export async function importOneItem(row) {
   const conn = await pool.getConnection();
