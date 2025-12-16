@@ -17,7 +17,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            # Load NVM (Node is installed via NVM under root)
+            # Load NVM (Node installed via NVM under root)
             export NVM_DIR="/root/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 
@@ -27,8 +27,13 @@ jobs:
             # Pull latest code
             git pull origin main
 
-            # Install dependencies
-            npm install --production
+            # Install production dependencies
+            npm install --omit=dev
 
-            # Restart only the Node app
-            pm2 restart databridge-node
+            # Restart if exists, start if not
+            pm2 describe databridge > /dev/null \
+              && pm2 restart databridge \
+              || pm2 start npm --name databridge -- run start
+
+            # Persist PM2 state
+            pm2 save
