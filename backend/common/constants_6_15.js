@@ -22,3 +22,6 @@ export const DEFAULT_COLUMN_MAPPING_Location = {
   S0204: "code2",
   S0206: "code3"
 };
+
+export const client_id = 1;
+export const default_date = '19000101';
