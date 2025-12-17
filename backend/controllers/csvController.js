@@ -31,37 +31,123 @@ export const uploadCSV = async (req, res) => {
 
     if (table === "partners") {
 
-      const processPartner = (await import("./F0PartnerImportService.js")).processPartner;
+      const {
+        processPartner,
+        buildPartnerImportContext,
+      } = await import("./F0PartnerImportService.js");
 
-      const conn = await pool.getConnection();
-
+      const startedAt = Date.now();
+      const batchSize = Number(process.env.PARTNERS_BATCH_SIZE || 200);
+      const progressEvery = Number(process.env.PARTNERS_PROGRESS_EVERY || 50);
+      // Default to 5 concurrent workers for remote DBs (can override with env var)
+      // For local DB, 1 is fine, but for 500ms+ latency, 5-10x speedup is typical
+      const concurrency = Number(process.env.PARTNERS_CONCURRENCY || 10);
       let inserted = 0;
+      let processed = 0;
+      let failed = 0;
 
       try {
-        await conn.beginTransaction();
+        // Build lookup caches + existing partner code set BEFORE the transaction
+        // (build uses a single connection, but ctx is safe to reuse across many connections)
+        const buildConn = await pool.getConnection();
+        const ctx = await buildPartnerImportContext(buildConn, data);
+        buildConn.release();
 
-        for (const row of data) {
-          const success = await processPartner(row, conn);
-          if (success) inserted++;
+        // Concurrency mode: best for high-latency remote DB connections
+        if (concurrency > 1) {
+          console.log(`[partners] Using ${concurrency} concurrent workers (set PARTNERS_CONCURRENCY to change)`);
+          let nextIndex = 0;
+          const workerCount = Math.min(concurrency, data.length);
+
+          const workers = Array.from({ length: workerCount }, async () => {
+            while (true) {
+              const idx = nextIndex++;
+              if (idx >= data.length) break;
+              const row = data[idx];
+
+              const conn = await pool.getConnection();
+              try {
+                await conn.beginTransaction();
+                const success = await processPartner(row, conn, ctx);
+                if (success) {
+                  await conn.commit();
+                  inserted++;
+                } else {
+                  // null => skipped, false => failed row
+                  await conn.rollback();
+                  if (success === false) failed++;
+                }
+              } catch (e) {
+                try { await conn.rollback(); } catch {}
+                failed++;
+                console.error(`[partners] row failed at idx=${idx}:`, e?.message || e);
+              } finally {
+                conn.release();
+              }
+
+              processed++;
+              if (progressEvery > 0 && processed % progressEvery === 0) {
+                console.log(
+                  `[partners] progress: ${processed}/${data.length}, inserted=${inserted}, failed=${failed}, elapsed=${Date.now() - startedAt}ms`
+                );
+              }
+            }
+          });
+
+          await Promise.all(workers);
+
+          return res.json({
+            message: "Partner CSV processed successfully",
+            inserted,
+            failed,
+            tableName: "partners (multi-table import)",
+          });
         }
 
-        await conn.commit();
+        // Sequential mode (keeps batching/commits)
+        const conn = await pool.getConnection();
+        try {
+          await conn.beginTransaction();
+
+          for (const row of data) {
+            const success = await processPartner(row, conn, ctx);
+            if (success) inserted++;
+            else if (success === false) failed++;
+            processed++;
+
+            if (progressEvery > 0 && processed % progressEvery === 0) {
+              console.log(
+                `[partners] progress: ${processed}/${data.length}, inserted=${inserted}, failed=${failed}, elapsed=${Date.now() - startedAt}ms`
+              );
+            }
+
+            if (batchSize > 0 && processed % batchSize === 0) {
+              await conn.commit();
+              console.log(
+                `[partners] committed batch: ${processed}/${data.length}, inserted=${inserted}, failed=${failed}, elapsed=${Date.now() - startedAt}ms`
+              );
+              await conn.beginTransaction();
+            }
+          }
+
+          await conn.commit();
+        } finally {
+          conn.release();
+        }
         
         return res.json({ 
           message: "Partner CSV processed successfully",
           inserted,
+          failed,
           tableName: "partners (multi-table import)"
         });
       } catch (err) {
-        await conn.rollback();
         console.error("Partner CSV import failed:", err);
 
         return res.status(500).json({
           message: "Partner CSV import failed",
           error: err.message
         });
-      } finally {
-        conn.release();
       }
     }
     if (table === "items") {

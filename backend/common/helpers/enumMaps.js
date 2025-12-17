@@ -10,14 +10,18 @@ export const paymentMethodEnum = { 0: "DEPOSIT", 1: "CASH", 2: "CASH" };
 export const cashCollectionMethodEnum = { 1: "SALESMAN", 2: "DELIVERY", 3: "DEPOSIT" };
 
 export function supplierEnum(code){
-    if(code <= 9) return "SUPPLIER";
+    const num = Number(code);
+    if(isNaN(num)) return null;
+    if(num <= 9) return "SUPPLIER";
     return null;
 }
 
 export function buyerEnum(code){
-    if(code>=10 && code<=19) return "SECONDARY_WHOLESALER";
-    if(code>=20 && code<=29) return "RETAILER";
-    if(code>=90 && code<=99) return "ADJUSTMENT";
+    const num = Number(code);
+    if(isNaN(num)) return null;
+    if(num>=10 && num<=19) return "SECONDARY_WHOLESALER";
+    if(num>=20 && num<=29) return "RETAILER";
+    if(num>=90 && num<=99) return "ADJUSTMENT";
     return null;
 }
 
