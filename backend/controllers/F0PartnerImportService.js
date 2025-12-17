@@ -5,12 +5,20 @@ import { client_id, default_date } from "../common/constants_6_15.js";
 // import { lookup } from "dns";
 
 function parseCsvDate(value) {
-  if (value == null) return null;
+  if (value == null || value === undefined) return null;
   const v = String(value).trim();
-  if (!v || v === "0") return null;
-  // Expect YYYYMMDD
+  // Special case: "99999999" represents a default future date
+  if (v === "99999999") return "2025-01-01";
+  // Explicitly handle '0', empty strings, and invalid values
+  if (!v || v === "0" || v === "00000000") return null;
+  // Expect YYYYMMDD format (8 digits)Whe
   if (/^\d{8}$/.test(v)) {
-    return `${v.slice(0,4)}-${v.slice(4,6)}-${v.slice(6,8)}`;
+    const year = v.slice(0,4);
+    const month = v.slice(4,6);
+    const day = v.slice(6,8);
+    // Validate the date components are reasonable
+    if (year === "0000" || month === "00" || day === "00") return null;
+    return `${year}-${month}-${day}`;
   }
 
   return null;
@@ -404,24 +412,25 @@ export async function importOneItem(row) {
     // ----------------------------------------------------
     const { cat1, cat2, cat3 } = categoryLevels(row.S1201);
 
-    const manufacturer_id = await idOrDefault("manufacturers", row.S1205);
-    const brand_id        = await idFrom("brands", row.S1205);
+    const manufacturer_id = await idOrDefault(conn, "manufacturers", row.S1205);
+    const brand_id        = await idFrom(conn, "brands", row.S1205);
 
-    const container_type_id   = await idFrom("container_types", row.S1207) ?? 1;
-    const place_of_origin_id  = await idFrom("place_of_origins", row.S1701);
-    const main_material_id    = await idFrom("materials", row.S1703);
-    const manufacture_type_id = await idFrom("manufacture_types", row.S1705);
-    const storage_type_id     = await idFrom("storage_types", row.S1706);
+    const container_type_id   = await idFrom(conn, "container_types", row.S1207) ?? 1;
+    const place_of_origin_id  = await idFrom(conn, "place_of_origins", row.S1701);
+    const main_material_id    = await idFrom(conn, "materials", row.S1703);
+    const manufacture_type_id = await idFrom(conn, "manufacture_types", row.S1705);
+    const storage_type_id     = await idFrom(conn, "storage_types", row.S1706);
 
-    const cat1_id = await idFrom("item_categories", cat1);
-    const cat2_id = await idFrom("item_categories", cat2) ?? "000";
-    const cat3_id = await idFrom("item_categories", cat3);
+    const cat1_id = await idFrom(conn, "item_categories", cat1);
+    const cat2_id = await idFrom(conn, "item_categories", cat2) ?? "000";
+    const cat3_id = await idFrom(conn, "item_categories", cat3);
 
     // ----------------------------------------------------
     // 3) INSERT ITEMS
     // ----------------------------------------------------
     const [item] = await conn.query(`
       INSERT INTO items (
+        client_id, creator_id, last_updater_id,
         code,type,nickname,name_main,kana,abbreviation,abbreviation_kana,
         volume,capacity_case,item_category1_id,item_category2_id,item_category3_id,
         manufacturer_id,brand_id,is_set_registration,is_manage_container_deposit,
@@ -430,9 +439,10 @@ export async function importOneItem(row) {
         alcohol_content,sake_meter_value,acidity_level,measurement_case_width,
         measurement_case_depth,measurement_case_height,measurement_case_weight,
         measurement_unit_width,measurement_unit_depth,measurement_unit_height,
-        measurement_unit_weight,start_of_sale_date,end_of_sale_date,updated_at
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        measurement_unit_weight,start_of_sale_date,end_of_sale_date,updated_at,packaging
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     `, [
+      client_id, client_id, client_id,
       row.S0101, itemTypeEnum[row.S02], row.S0313, row.S05, row.S06, row.S07, row.S08,
       row.S09, row.S11, cat1_id, cat2_id, cat3_id,
       manufacturer_id, brand_id, row.S1213, row.S1215,
@@ -441,7 +451,10 @@ export async function importOneItem(row) {
       row.S1711,row.S1713,row.S1715,row.S1719,
       row.S1721,row.S1723,row.S1725,
       row.S1727,row.S1729,row.S1731,row.S1733,
-      row.S20,row.S21,row.S22
+      parseCsvDate(row.S20),
+      parseCsvDate(row.S21),
+      parseCsvDate(row.S22),
+      ''  // packaging - default to empty string
     ]);
 
     const item_id = item.insertId;
@@ -460,9 +473,9 @@ export async function importOneItem(row) {
     for (const s of searchEntries) {
       if (s.code) {
         await conn.query(
-          `INSERT INTO item_search_information (item_id, search_string, code_type, quantity_type) 
-           VALUES (?, ?, ?, 'PIECE')`,
-          [item_id, s.code, s.type]
+          `INSERT INTO item_search_information (client_id, item_id, search_string, code_type, quantity_type, priority) 
+           VALUES (?, ?, ?, ?, 'PIECE', ?)`,
+          [client_id, item_id, s.code, s.type, 0]
         );
       }
     }
@@ -481,9 +494,12 @@ export async function importOneItem(row) {
 
       await conn.query(`
         INSERT INTO item_prices 
-        (item_id, start_date, ${priceColumnNames(seq)}) 
-        VALUES (?, ?, ?, ?)
+        (client_id, creator_id, last_updater_id, item_id, start_date, ${priceColumnNames(seq)}) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `, [
+        client_id,
+        client_id,
+        client_id,
         item_id,
         isDefault ? "20250101" : row[dKey],
         isDefault ? row[unitKey] : row[altUnitKey],
