@@ -12,6 +12,7 @@ const pool = mysql.createPool({
   database: process.env.DB_DATABASE,
   waitForConnections: true,
   connectionLimit: Number(process.env.DB_CONNECTION_LIMIT || 10),
+  connectTimeout: 10000
 });
 
 // Export pool for use in other modules
