@@ -305,7 +305,8 @@ export async function processPartner(row, conn, ctx) {
         if (closingDate && Number(closingDate) !== 0) {
           closingRows.push([
             partner_id, client_id, ledgerClassificationId,
-            closingDate, deposit_plan, Number(default_date), client_id
+            closingDate, deposit_plan, Number(default_date), client_id,
+            row.T29 || default_date  // updated_at from CSV, or default_date if not provided
           ]);
         }
       }      
@@ -315,7 +316,7 @@ export async function processPartner(row, conn, ctx) {
       await q(`
         INSERT INTO partner_closing_details
           (partner_id, client_id, ledger_classification_id,
-          closing_date, deposit_plan, deposit_date, updated_by)
+          closing_date, deposit_plan, deposit_date, updated_by, updated_at)
         VALUES ?
       `, [closingRows]);
     }
@@ -346,9 +347,9 @@ export async function processPartner(row, conn, ctx) {
         INSERT INTO partner_timetables
           (partner_id, week, partner_timetable_plan_id,
           sunday, monday, tuesday, wednesday,
-          thursday, friday, saturday)
+          thursday, friday, saturday, updated_at)
         VALUES ?
-      `, [weeks.map(w => [partner_id, w, client_id, ...days])]);
+      `, [weeks.map(w => [partner_id, w, client_id, ...days, row.T29 || default_date])]);
     }
     ctx?.existingPartnerCodes?.add(code);
     return true;
