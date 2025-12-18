@@ -150,13 +150,18 @@ export async function processPartner(row, conn, ctx) {
     // Insert Partner
     const timeout = Number(ctx?.queryTimeoutMs || process.env.DB_QUERY_TIMEOUT_MS || 120000);
     const q = (sql, params = []) => conn.query({ sql, timeout }, params);
+    
+    // Calculate isSupplier before INSERT so we can include it
+    const t02Num = Number(row.T02) || 0;
+    const isSupplier = t02Num <= 9;
+    
     const [p] = await q(`
       INSERT INTO partners
         (client_id, creator_id, last_updater_id, code,
         partner_serial_number, nickname, name_main, kana_name,
         address1, address2, postal_code, tel, fax, entry_note,
-        start_of_trade_date, end_of_trade_date, updated_at)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        start_of_trade_date, end_of_trade_date, updated_at, is_supplier)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     `, [
       client_id, client_id, client_id,
       code, row.T0510, row.T05103,
@@ -165,15 +170,13 @@ export async function processPartner(row, conn, ctx) {
       row.T16, row.T17, row.T23,
       parseCsvDate(row.T27),
       parseCsvDate(row.T28),
-      row.T29
+      row.T29,
+      isSupplier ? 1 : 0
     ]);
     const partner_id = p.insertId;
 
     await q(`UPDATE partners SET bill_group_id=?, partner_price_group_id=? WHERE id=?`,
       [partner_id, partner_id, partner_id]);
-
-    const t02Num = Number(row.T02) || 0;
-    const isSupplier = t02Num <= 9;
 
     if(isSupplier){
       const partnerCategory = supplierEnum(t02Num);
