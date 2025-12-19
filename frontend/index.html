@@ -13,51 +13,58 @@
 </head>
 
 <body>
+  <!-- Skip to main content link for accessibility -->
+  <a href="#main-content" class="skip-link">メインコンテンツへスキップ</a>
 
-  <div class="container">
+  <!-- Toast notification container -->
+  <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+
+  <div class="container" id="main-content">
     <h2>
-      <span style="margin-right: 8px; font-size: 20px;">📊</span>
+      <span style="margin-right: 8px; font-size: 20px;" aria-hidden="true">📊</span>
       CSVファイルアップロード
     </h2>
 
-    <form id="uploadForm">
+    <form id="uploadForm" novalidate>
       
-      <div class="form-row">
-        <label>CSV ファイル：</label>
+      <div class="form-row" id="fileRow">
+        <label for="file">CSV ファイル：</label>
         <div class="file-upload-area">
-          <div class="file-drop-zone" id="dropZone">
-            <span class="file-drop-zone-icon">📄</span>
+          <div class="file-drop-zone" id="dropZone" role="button" tabindex="0" aria-label="ファイルをドラッグ＆ドロップまたはクリックして選択">
+            <span class="file-drop-zone-icon" aria-hidden="true">📄</span>
             <div class="file-drop-zone-text" id="dropZoneText">ファイルをドラッグ＆ドロップ</div>
             <div class="file-drop-zone-hint">またはクリックしてファイルを選択</div>
-            <input type="file" id="file" accept=".csv" required />
+            <input type="file" id="file" accept=".csv" required aria-describedby="fileError" aria-invalid="false" />
+            <span id="fileError" class="error-message" role="alert" style="display: none;"></span>
           </div>
           <div class="file-info" id="fileInfo">
             <div class="file-name">
-              <span>📎</span>
+              <span aria-hidden="true">📎</span>
               <span id="fileName"></span>
-              <button type="button" class="file-remove" id="fileRemove">削除</button>
+              <button type="button" class="file-remove" id="fileRemove" aria-label="ファイルを削除">削除</button>
             </div>
             <div class="file-size" id="fileSize"></div>
           </div>
         </div>
       </div>
 
-      <div class="form-row">
-        <label>タイプ選択：</label>
-        <select id="type"></select>
+      <div class="form-row" id="typeRow">
+        <label for="type">タイプ選択：</label>
+        <select id="type" aria-describedby="typeError" aria-invalid="false" required></select>
+        <span id="typeError" class="error-message" role="alert" style="display: none;"></span>
       </div>
 
       <div class="form-row">
-        <button id="submitBtn" type="submit">アップロード</button>
+        <button id="submitBtn" type="submit" aria-label="CSVファイルをアップロード">アップロード</button>
       </div>
 
     </form>
 
-    <div id="loader">読み込み中…</div>
+    <div id="loader" class="sr-only" aria-live="polite" aria-atomic="true">読み込み中…</div>
 
-    <progress id="progress" value="0" max="100" style="display: none;"></progress>
+    <progress id="progress" value="0" max="100" style="display: none;" aria-label="アップロード進捗"></progress>
 
-    <div id="result"></div>
+    <div id="result" role="status" aria-live="polite" aria-atomic="true"></div>
     <footer>© Data Bridge System</footer>
   </div>
 
