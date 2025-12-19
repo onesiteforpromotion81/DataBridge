@@ -1,50 +1,108 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
-  <title>Data Bridge</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Bridge - CSVファイルアップロード</title>
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
-      background: #f5f7fa;
-      padding: 30px;
-      font-size: 14px;
-      color: #333;
+      font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic Medium", "游ゴシック Medium", "YuGothic", "游ゴシック体", "Noto Sans JP", "メイリオ", Meiryo, sans-serif;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      background-attachment: fixed;
+      padding: 40px 20px;
+      font-size: 15px;
+      color: #2c3e50;
+      line-height: 1.7;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
     h2 {
-      font-size: 18px;
-      color: #0B63CE;
-      border-left: 6px solid #0B63CE;
-      padding-left: 10px;
-      margin-bottom: 20px;
+      font-size: 22px;
+      color: #1a5490;
+      border-left: 5px solid #0B63CE;
+      padding: 16px 20px;
+      margin: 0 0 28px 0;
+      background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+      border-radius: 8px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      box-shadow: 0 2px 8px rgba(11, 99, 206, 0.08);
+      position: relative;
+    }
+
+    h2::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(11, 99, 206, 0.2), transparent);
     }
 
     .container {
-      max-width: 620px;
-      background: white;
-      padding: 20px 25px;
-      border: 1px solid #d0d7e1;
-      border-radius: 6px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      max-width: 680px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 32px 36px;
+      border: 1px solid rgba(11, 99, 206, 0.1);
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      transition: box-shadow 0.3s ease;
+    }
+
+    .container:hover {
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
     }
 
     .form-row {
-      margin-bottom: 15px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
     }
 
     label {
       display: inline-block;
-      width: 120px;
-      font-weight: bold;
-      color: #444;
+      min-width: 140px;
+      font-weight: 600;
+      color: #34495e;
+      font-size: 15px;
+      letter-spacing: 0.3px;
     }
 
     input[type="file"],
     select {
-      padding: 5px;
-      border: 1px solid #c5cdd7;
-      border-radius: 4px;
-      font-size: 13px;
+      flex: 1;
+      padding: 10px 14px;
+      border: 2px solid #e1e8ed;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      background: #ffffff;
+      color: #2c3e50;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    input[type="file"]:hover,
+    select:hover {
+      border-color: #0B63CE;
+      background: #f8f9ff;
+    }
+
+    input[type="file"]:focus,
+    select:focus {
+      outline: none;
+      border-color: #0B63CE;
+      box-shadow: 0 0 0 3px rgba(11, 99, 206, 0.1);
+      background: #ffffff;
     }
 
     button {
@@ -120,32 +178,120 @@
     }
 
     #result {
-      margin-top: 20px;
-      padding: 12px;
-      border: 1px solid #d3d9e3;
-      background: #fafcff;
+      margin-top: 24px;
+      padding: 18px 20px;
+      border: 2px solid #e1e8ed;
+      background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
       white-space: pre-wrap;
-      border-radius: 4px;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.8;
+      color: #2c3e50;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      transition: all 0.3s ease;
+    }
+
+    #result:empty {
+      display: none;
     }
 
     #loader {
       display: none;
-      margin: 8px 0;
-      font-size: 13px;
-      color: #555;
+      margin: 12px 0;
+      font-size: 14px;
+      color: #5a6c7d;
+      text-align: center;
+      font-weight: 500;
+      letter-spacing: 0.5px;
     }
 
     progress {
       width: 100%;
-      margin-top: 10px;
-      height: 16px;
+      margin-top: 16px;
+      height: 8px;
+      border-radius: 4px;
+      overflow: hidden;
+      background: #e1e8ed;
+      border: none;
+    }
+
+    progress::-webkit-progress-bar {
+      background: #e1e8ed;
+      border-radius: 4px;
+    }
+
+    progress::-webkit-progress-value {
+      background: linear-gradient(90deg, #0B63CE 0%, #0a5bb8 100%);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+
+    progress::-moz-progress-bar {
+      background: linear-gradient(90deg, #0B63CE 0%, #0a5bb8 100%);
+      border-radius: 4px;
     }
 
     footer {
-      margin-top: 40px;
-      font-size: 12px;
-      color: #777;
+      margin-top: 48px;
+      padding-top: 24px;
+      font-size: 13px;
+      color: #7f8c8d;
       text-align: center;
+      border-top: 1px solid #e1e8ed;
+      font-weight: 400;
+      letter-spacing: 0.5px;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      body {
+        padding: 20px 12px;
+        font-size: 14px;
+      }
+
+      .container {
+        padding: 24px 20px;
+        border-radius: 8px;
+      }
+
+      h2 {
+        font-size: 20px;
+        padding: 14px 16px;
+        margin-bottom: 24px;
+      }
+
+      .form-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+
+      label {
+        min-width: auto;
+        width: 100%;
+        margin-bottom: 4px;
+      }
+
+      input[type="file"],
+      select {
+        width: 100%;
+      }
+
+      button {
+        width: 100%;
+        padding: 12px 24px;
+      }
+    }
+
+    /* Smooth scroll */
+    html {
+      scroll-behavior: smooth;
+    }
+
+    /* Selection color */
+    ::selection {
+      background: rgba(11, 99, 206, 0.2);
+      color: #1a5490;
     }
   </style>
 </head>
@@ -238,7 +384,9 @@
       submitBtn.textContent = "アップロード中...";
       progressBar.style.display = "block";
       progressBar.value = 0;
-      resultDiv.textContent = "アップロード中…";
+      resultDiv.textContent = "⏳ アップロード中…";
+      resultDiv.style.borderColor = "#e1e8ed";
+      resultDiv.style.background = "linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%)";
 
       const formData = new FormData();
       formData.append("file", file);
@@ -257,26 +405,44 @@
         xhr.onload = () => {
           submitBtn.disabled = false;
           submitBtn.textContent = "アップロード";
+          progressBar.style.display = "none";
           if (xhr.status >= 200 && xhr.status < 300) {
             const json = JSON.parse(xhr.responseText);
             console.log("json: ", json);
-            resultDiv.textContent = `${json.message}。\n${json.inserted} 行が "${json.tableName}" テーブルに追加されました。`;
+            const inserted = json.inserted || 0;
+            const failed = json.failed || 0;
+            const skipped = json.skipped || 0;
+            let message = `✅ ${json.message}\n\n📊 処理結果：\n   • 追加: ${inserted} 行\n`;
+            if (failed > 0) message += `   • 失敗: ${failed} 行\n`;
+            if (skipped > 0) message += `   • スキップ: ${skipped} 行\n`;
+            message += `\n📋 テーブル: "${json.tableName}"`;
+            resultDiv.textContent = message;
+            resultDiv.style.borderColor = "#27ae60";
+            resultDiv.style.background = "linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%)";
           } else {
-            resultDiv.textContent = "アップロード失敗：" + xhr.responseText;
+            resultDiv.textContent = `❌ アップロード失敗：\n${xhr.responseText}`;
+            resultDiv.style.borderColor = "#e74c3c";
+            resultDiv.style.background = "linear-gradient(135deg, #fef2f2 0%, #ffffff 100%)";
           }
         };
 
         xhr.onerror = () => {
-          resultDiv.textContent = "通信エラーが発生しました。";
+          resultDiv.textContent = "❌ 通信エラーが発生しました。\nネットワーク接続を確認してください。";
+          resultDiv.style.borderColor = "#e74c3c";
+          resultDiv.style.background = "linear-gradient(135deg, #fef2f2 0%, #ffffff 100%)";
           submitBtn.disabled = false;
           submitBtn.textContent = "アップロード";
+          progressBar.style.display = "none";
         };
 
         xhr.send(formData);
       } catch (err) {
-        resultDiv.textContent = "エラー：" + err.message;
+        resultDiv.textContent = `❌ エラー：\n${err.message}`;
+        resultDiv.style.borderColor = "#e74c3c";
+        resultDiv.style.background = "linear-gradient(135deg, #fef2f2 0%, #ffffff 100%)";
         submitBtn.disabled = false;
         submitBtn.textContent = "アップロード";
+        progressBar.style.display = "none";
       }
     });
   </script>
