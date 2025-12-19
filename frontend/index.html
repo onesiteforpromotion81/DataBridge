@@ -64,7 +64,7 @@
     .form-row {
       margin-bottom: 24px;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 16px;
     }
 
@@ -75,9 +75,126 @@
       color: #34495e;
       font-size: 15px;
       letter-spacing: 0.3px;
+      padding-top: 12px;
     }
 
-    input[type="file"],
+    /* Custom File Input with Drag & Drop */
+    .file-upload-area {
+      flex: 1;
+      position: relative;
+    }
+
+    .file-drop-zone {
+      border: 2px dashed #cbd5e0;
+      border-radius: 8px;
+      padding: 32px 20px;
+      text-align: center;
+      background: #f8f9fa;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .file-drop-zone:hover,
+    .file-drop-zone.drag-over {
+      border-color: #0B63CE;
+      background: #f0f7ff;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(11, 99, 206, 0.15);
+    }
+
+    .file-drop-zone.has-file {
+      border-color: #27ae60;
+      background: #f0fdf4;
+      border-style: solid;
+      padding: 20px;
+    }
+
+    .file-drop-zone-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .file-drop-zone-text {
+      font-size: 15px;
+      color: #5a6c7d;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .file-drop-zone-hint {
+      font-size: 13px;
+      color: #95a5a6;
+      margin-top: 4px;
+    }
+
+    .file-info {
+      display: none;
+      margin-top: 12px;
+      padding: 12px 16px;
+      background: #ffffff;
+      border-radius: 6px;
+      border: 1px solid #e1e8ed;
+    }
+
+    .file-info.show {
+      display: block;
+      animation: slideDown 0.3s ease;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .file-name {
+      font-weight: 600;
+      color: #2c3e50;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .file-size {
+      font-size: 13px;
+      color: #7f8c8d;
+    }
+
+    .file-remove {
+      margin-left: auto;
+      background: #e74c3c;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .file-remove:hover {
+      background: #c0392b;
+      transform: scale(1.05);
+    }
+
+    input[type="file"] {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+    }
+
     select {
       flex: 1;
       padding: 10px 14px;
@@ -91,13 +208,11 @@
       cursor: pointer;
     }
 
-    input[type="file"]:hover,
     select:hover {
       border-color: #0B63CE;
       background: #f8f9ff;
     }
 
-    input[type="file"]:focus,
     select:focus {
       outline: none;
       border-color: #0B63CE;
@@ -189,10 +304,31 @@
       color: #2c3e50;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
       transition: all 0.3s ease;
+      animation: fadeIn 0.4s ease;
     }
 
     #result:empty {
       display: none;
+    }
+
+    #result.success {
+      animation: successPulse 0.6s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes successPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
     }
 
     #loader {
@@ -270,9 +406,13 @@
         min-width: auto;
         width: 100%;
         margin-bottom: 4px;
+        padding-top: 0;
       }
 
-      input[type="file"],
+      .file-upload-area {
+        width: 100%;
+      }
+
       select {
         width: 100%;
       }
@@ -305,7 +445,22 @@
       
       <div class="form-row">
         <label>CSV ファイル：</label>
-        <input type="file" id="file" accept=".csv" required />
+        <div class="file-upload-area">
+          <div class="file-drop-zone" id="dropZone">
+            <span class="file-drop-zone-icon">📄</span>
+            <div class="file-drop-zone-text" id="dropZoneText">ファイルをドラッグ＆ドロップ</div>
+            <div class="file-drop-zone-hint">またはクリックしてファイルを選択</div>
+            <input type="file" id="file" accept=".csv" required />
+          </div>
+          <div class="file-info" id="fileInfo">
+            <div class="file-name">
+              <span>📎</span>
+              <span id="fileName"></span>
+              <button type="button" class="file-remove" id="fileRemove">削除</button>
+            </div>
+            <div class="file-size" id="fileSize"></div>
+          </div>
+        </div>
       </div>
 
       <div class="form-row">
@@ -363,6 +518,78 @@
 
     loadTypes();
 
+    // File Input & Drag & Drop Handler
+    const dropZone = document.getElementById("dropZone");
+    const dropZoneText = document.getElementById("dropZoneText");
+    const fileInfo = document.getElementById("fileInfo");
+    const fileName = document.getElementById("fileName");
+    const fileSize = document.getElementById("fileSize");
+    const fileRemove = document.getElementById("fileRemove");
+
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    }
+
+    function updateFileDisplay(file) {
+      if (file) {
+        fileName.textContent = file.name;
+        fileSize.textContent = formatFileSize(file.size);
+        fileInfo.classList.add("show");
+        dropZone.classList.add("has-file");
+        dropZoneText.textContent = file.name;
+      } else {
+        fileInfo.classList.remove("show");
+        dropZone.classList.remove("has-file");
+        dropZoneText.textContent = "ファイルをドラッグ＆ドロップ";
+        fileInput.value = "";
+      }
+    }
+
+    // File input change
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      updateFileDisplay(file);
+    });
+
+    // Remove file button
+    fileRemove.addEventListener("click", (e) => {
+      e.stopPropagation();
+      updateFileDisplay(null);
+    });
+
+    // Drag and drop
+    dropZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropZone.classList.add("drag-over");
+    });
+
+    dropZone.addEventListener("dragleave", () => {
+      dropZone.classList.remove("drag-over");
+    });
+
+    dropZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropZone.classList.remove("drag-over");
+      
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        const file = files[0];
+        if (file.name.endsWith(".csv")) {
+          fileInput.files = files;
+          updateFileDisplay(file);
+        } else {
+          resultDiv.textContent = "❌ CSV形式のファイルのみアップロードできます。";
+          resultDiv.style.borderColor = "#e74c3c";
+          resultDiv.style.background = "linear-gradient(135deg, #fef2f2 0%, #ffffff 100%)";
+          resultDiv.style.display = "block";
+        }
+      }
+    });
+
     // Upload CSV Handler
     document.getElementById("uploadForm").addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -376,7 +603,11 @@
       }
 
       if (!file.name.endsWith(".csv")) {
-        resultDiv.textContent = "CSV形式のファイルのみアップロードできます。";
+        resultDiv.textContent = "❌ CSV形式のファイルのみアップロードできます。";
+        resultDiv.style.borderColor = "#e74c3c";
+        resultDiv.style.background = "linear-gradient(135deg, #fef2f2 0%, #ffffff 100%)";
+        resultDiv.style.display = "block";
+        updateFileDisplay(null);
         return;
       }
 
@@ -419,6 +650,8 @@
             resultDiv.textContent = message;
             resultDiv.style.borderColor = "#27ae60";
             resultDiv.style.background = "linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%)";
+            resultDiv.classList.add("success");
+            setTimeout(() => resultDiv.classList.remove("success"), 600);
           } else {
             resultDiv.textContent = `❌ アップロード失敗：\n${xhr.responseText}`;
             resultDiv.style.borderColor = "#e74c3c";
