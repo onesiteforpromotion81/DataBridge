@@ -25,3 +25,34 @@ export const DEFAULT_COLUMN_MAPPING_Location = {
 
 export const client_id = 1;
 export const default_date = '19000101';
+
+/**
+ * Mapping of handler file names (without .js extension) to their Japanese display names.
+ * This is used to map the internal handler names to user-friendly names in the UI.
+ */
+export const HANDLER_NAME_MAP = {
+  accountClassifications: '金種',
+  businessTypes: '業務形態',
+  manufacturers: 'メーカー',
+  locationConditions: '立地条件',
+  brands: '銘柄',
+  materials: '原料',
+  placeOfOrigins: '原産地',
+  notes: '備考',
+  areas: '地区',
+  departments: '部門',
+  branches: '支店',
+  locations: 'ロケーション',
+  warehouses: '倉庫',
+  deliveryCourses: '配送コース',
+  users: 'ユーザー',
+  itemPartnerPrices: '個別単価',
+  manufactureTypes: '製造区分',
+  slipTypes: '伝票種別',
+  saleSizes: '年商規模',
+  storageTypes: '貯蔵区分',
+  partners: '取引先',
+  items: '商品管理',
+  itemConnections: '商品関連付',
+  itemCategories: '大中小分類',
+};

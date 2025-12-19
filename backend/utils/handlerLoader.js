@@ -1,44 +1,73 @@
 import fs from "fs";
 import path from "path";
 import { pathToFileURL } from "url";
+import { HANDLER_NAME_MAP } from "../common/constants_6_15.js";
 
+/**
+ * Gets the display name for a handler based on its file name.
+ * Falls back to the file name (camelCase) if no mapping exists.
+ * 
+ * @param {string} fileName - The handler file name without extension
+ * @returns {string} The display name for the handler
+ */
+function getHandlerDisplayName(fileName) {
+  return HANDLER_NAME_MAP[fileName] ?? fileName;
+}
+
+/**
+ * Loads all CSV handler modules from the handlers directory.
+ * Excludes baseHandler.js and any non-JS files.
+ * 
+ * @returns {Promise<Object>} An object mapping display names to handler classes
+ * @throws {Error} If the handlers directory cannot be read or modules fail to load
+ */
 export const loadHandlers = async () => {
   const handlersDir = path.join(process.cwd(), "backend/csv-handlers");
+  
+  // Validate directory exists
+  if (!fs.existsSync(handlersDir)) {
+    throw new Error(`Handlers directory not found: ${handlersDir}`);
+  }
+
+  // Read handler files
   const files = fs.readdirSync(handlersDir)
     .filter(f => f.endsWith(".js") && f !== "baseHandler.js");
 
   const handlers = {};
+  const errors = [];
+
+  // Load each handler module
   for (const file of files) {
-    // Convert absolute path to file:// URL
-    const filePath = pathToFileURL(path.join(handlersDir, file)).href;
-    const module = await import(filePath);
-    const optionName = file.replace(".js", "");
-    let handlerName;
-    handlerName = handlerName ?? (optionName === 'accountClassifications' ? '金種' : undefined);
-    handlerName = handlerName ?? (optionName === 'businessTypes' ? '業務形態' : undefined);
-    handlerName = handlerName ?? (optionName === 'manufacturers' ? 'メーカー' : undefined);
-    handlerName = handlerName ?? (optionName === 'locationConditions' ? '立地条件' : undefined);
-    handlerName = handlerName ?? (optionName === 'brands' ? '銘柄' : undefined);
-    handlerName = handlerName ?? (optionName === 'materials' ? '原料' : undefined);
-    handlerName = handlerName ?? (optionName === 'placeOfOrigins' ? '原産地' : undefined);
-    handlerName = handlerName ?? (optionName === 'notes' ? '備考' : undefined);
-    handlerName = handlerName ?? (optionName === 'areas' ? '地区' : undefined);
-    handlerName = handlerName ?? (optionName === 'departments' ? '部門' : undefined);
-    handlerName = handlerName ?? (optionName === 'branches' ? '支店' : undefined);
-    handlerName = handlerName ?? (optionName === 'locations' ? 'ロケーション' : undefined);
-    handlerName = handlerName ?? (optionName === 'warehouses' ? '倉庫' : undefined);
-    handlerName = handlerName ?? (optionName === 'deliveryCourses' ? '配送コース' : undefined);
-    handlerName = handlerName ?? (optionName === 'users' ? 'ユーザー' : undefined);
-    handlerName = handlerName ?? (optionName === 'itemPartnerPrices' ? '個別単価' : undefined);
-    handlerName = handlerName ?? (optionName === 'manufactureTypes' ? '製造区分' : undefined);
-    handlerName = handlerName ?? (optionName === 'slipTypes' ? '伝票種別' : undefined);
-    handlerName = handlerName ?? (optionName === 'saleSizes' ? '年商規模' : undefined);
-    handlerName = handlerName ?? (optionName === 'storageTypes' ? '貯蔵区分' : undefined);
-    handlerName = handlerName ?? (optionName === 'partners' ? '取引先' : undefined);
-    handlerName = handlerName ?? (optionName === 'items' ? '商品管理' : undefined);
-    handlerName = handlerName ?? (optionName === 'itemConnections' ? '商品関連付' : undefined);
-    handlerName = handlerName ?? (optionName === 'itemCategories' ? '大中小分類' : undefined);
-    handlers[handlerName] = module.default;
+    try {
+      const filePath = pathToFileURL(path.join(handlersDir, file)).href;
+      const module = await import(filePath);
+      
+      if (!module.default) {
+        console.warn(`[handlerLoader] ${file} does not export a default export`);
+        continue;
+      }
+
+      const optionName = file.replace(".js", "");
+      const handlerName = getHandlerDisplayName(optionName);
+      
+      handlers[handlerName] = module.default;
+    } catch (error) {
+      const errorMsg = `Failed to load handler ${file}: ${error.message}`;
+      console.error(`[handlerLoader] ${errorMsg}`);
+      errors.push(errorMsg);
+    }
+  }
+
+  // Log summary
+  const loadedCount = Object.keys(handlers).length;
+  console.log(`[handlerLoader] Loaded ${loadedCount} handler(s) from ${handlersDir}`);
+  
+  if (errors.length > 0) {
+    console.warn(`[handlerLoader] ${errors.length} handler(s) failed to load`);
+  }
+
+  if (loadedCount === 0) {
+    throw new Error("No handlers were successfully loaded. Check handler files and ensure they export a default class.");
   }
 
   return handlers;
