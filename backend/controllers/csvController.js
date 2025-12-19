@@ -543,7 +543,7 @@ export const uploadCSV = async (req, res) => {
       }
     }
 
-    res.json({ message: "CSV processed successfully", inserted: filteredData.length, tableName: table });
+    res.json({ message: "CSVの処理が正常に完了しました", inserted: filteredData.length, tableName: table });
 
   } catch (err) {
     console.error(err);
