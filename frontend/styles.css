@@ -1,20 +1,136 @@
+/* ============================================
+   DESIGN TOKENS (CSS Custom Properties)
+   ============================================ */
+:root {
+  /* Colors - Primary */
+  --color-primary: #0B63CE;
+  --color-primary-dark: #0a5bb8;
+  --color-primary-darker: #0950a0;
+  --color-primary-light: #a9c2e5;
+  --color-primary-alpha-10: rgba(11, 99, 206, 0.1);
+  --color-primary-alpha-15: rgba(11, 99, 206, 0.15);
+  --color-primary-alpha-20: rgba(11, 99, 206, 0.2);
+  --color-primary-alpha-25: rgba(11, 99, 206, 0.25);
+  --color-primary-alpha-30: rgba(11, 99, 206, 0.3);
+  --color-primary-alpha-50: rgba(11, 99, 206, 0.5);
+  --color-primary-alpha-80: rgba(11, 99, 206, 0.08);
+
+  /* Colors - Semantic */
+  --color-success: #27ae60;
+  --color-success-light: #f0fdf4;
+  --color-error: #e74c3c;
+  --color-error-dark: #c0392b;
+  --color-error-light: #fef2f2;
+  --color-warning: #f39c12;
+  --color-info: #3498db;
+
+  /* Colors - Neutral */
+  --color-text-primary: #2c3e50;
+  --color-text-secondary: #34495e;
+  --color-text-tertiary: #5a6c7d;
+  --color-text-muted: #7f8c8d;
+  --color-text-disabled: #95a5a6;
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f8f9fa;
+  --color-bg-tertiary: #e9ecef;
+  --color-bg-overlay: rgba(0, 0, 0, 0.5);
+  --color-border: #e1e8ed;
+  --color-border-light: rgba(11, 99, 206, 0.1);
+
+  /* Typography */
+  --font-family-body: "M PLUS Rounded 1c", "Kosugi Maru", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic Medium", "游ゴシック Medium", "YuGothic", "游ゴシック体", "Noto Sans JP", "メイリオ", Meiryo, sans-serif;
+  --font-family-heading: "Noto Serif JP", "Shippori Mincho", "Hiragino Mincho ProN", "ヒラギノ明朝 ProN", "Yu Mincho", "游明朝", serif;
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-base: 15px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  --line-height-tight: 1.4;
+  --line-height-normal: 1.7;
+  --line-height-relaxed: 1.8;
+  --letter-spacing-tight: 0.2px;
+  --letter-spacing-normal: 0.3px;
+  --letter-spacing-wide: 0.5px;
+  --letter-spacing-wider: 0.8px;
+  --letter-spacing-widest: 1px;
+
+  /* Spacing Scale (4px base) */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 20px;
+  --spacing-2xl: 24px;
+  --spacing-3xl: 28px;
+  --spacing-4xl: 32px;
+  --spacing-5xl: 36px;
+  --spacing-6xl: 40px;
+  --spacing-7xl: 48px;
+
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 50%;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --shadow-2xl: 0 6px 24px rgba(0, 0, 0, 0.12);
+  --shadow-primary: 0 2px 8px rgba(11, 99, 206, 0.25);
+  --shadow-primary-lg: 0 4px 12px rgba(11, 99, 206, 0.35);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+
+  /* Transitions */
+  --transition-fast: 0.1s ease;
+  --transition-base: 0.2s ease;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.5s ease;
+  --transition-bounce: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Z-Index Scale */
+  --z-base: 0;
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+  --z-toast: 1080;
+
+  /* Focus Styles */
+  --focus-ring-width: 3px;
+  --focus-ring-color: var(--color-primary-alpha-30);
+  --focus-ring-offset: 2px;
+}
+
 * {
   box-sizing: border-box;
 }
 
 body {
-  font-family: "M PLUS Rounded 1c", "Kosugi Maru", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic Medium", "游ゴシック Medium", "YuGothic", "游ゴシック体", "Noto Sans JP", "メイリオ", Meiryo, sans-serif;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  font-family: var(--font-family-body);
+  background: linear-gradient(135deg, var(--color-bg-secondary) 0%, var(--color-bg-tertiary) 100%);
   background-attachment: fixed;
-  padding: 40px 20px;
-  font-size: 15px;
-  color: #2c3e50;
-  line-height: 1.7;
+  padding: var(--spacing-6xl) var(--spacing-xl);
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-normal);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   position: relative;
-  font-weight: 400;
+  font-weight: var(--font-weight-normal);
 }
 
 /* Japanese-inspired background pattern */
@@ -26,8 +142,8 @@ body::before {
   right: 0;
   bottom: 0;
   background-image: 
-    radial-gradient(circle at 20% 50%, rgba(11, 99, 206, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(11, 99, 206, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 20% 50%, var(--color-primary-alpha-10) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, var(--color-primary-alpha-10) 0%, transparent 50%),
     repeating-linear-gradient(
       45deg,
       transparent,
@@ -783,6 +899,292 @@ button::before {
   100% {
     transform: scale(1) rotate(360deg);
     opacity: 1;
+  }
+}
+
+/* ============================================
+   TOAST NOTIFICATION SYSTEM
+   ============================================ */
+.toast-container {
+  position: fixed;
+  top: var(--spacing-xl);
+  right: var(--spacing-xl);
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  max-width: 400px;
+  pointer-events: none;
+}
+
+.toast {
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg) var(--spacing-xl);
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  min-width: 300px;
+  max-width: 100%;
+  pointer-events: auto;
+  animation: toastSlideIn 0.3s var(--transition-bounce);
+  border-left: 4px solid;
+  position: relative;
+  overflow: hidden;
+}
+
+.toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: currentColor;
+  transform-origin: left;
+  animation: toastProgress var(--toast-duration, 5s) linear forwards;
+}
+
+.toast.success {
+  border-left-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.toast.error {
+  border-left-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.toast.warning {
+  border-left-color: var(--color-warning);
+  color: var(--color-warning);
+}
+
+.toast.info {
+  border-left-color: var(--color-info);
+  color: var(--color-info);
+}
+
+.toast-icon {
+  font-size: var(--font-size-xl);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.toast-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast-title {
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-base);
+  margin-bottom: var(--spacing-xs);
+  color: var(--color-text-primary);
+}
+
+.toast-message {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-normal);
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  margin: calc(var(--spacing-xs) * -1);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-base);
+  flex-shrink: 0;
+  font-size: var(--font-size-lg);
+  line-height: 1;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toast-close:hover {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+}
+
+.toast-close:focus {
+  outline: 2px solid var(--focus-ring-color);
+  outline-offset: 2px;
+}
+
+@keyframes toastSlideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes toastProgress {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* ============================================
+   ACCESSIBILITY IMPROVEMENTS
+   ============================================ */
+
+/* Skip to main content link */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: var(--spacing-lg);
+  background: var(--color-primary);
+  color: white;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  z-index: var(--z-tooltip);
+  font-weight: var(--font-weight-bold);
+}
+
+.skip-link:focus {
+  top: var(--spacing-lg);
+  outline: 3px solid var(--focus-ring-color);
+  outline-offset: 2px;
+}
+
+/* Enhanced focus styles */
+*:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+  border-radius: var(--radius-sm);
+}
+
+button:focus-visible,
+select:focus-visible,
+input:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* Remove default focus for mouse users */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Error states */
+.form-row.error label {
+  color: var(--color-error);
+}
+
+.form-row.error .error-message {
+  display: block;
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+  margin-top: var(--spacing-xs);
+  padding-left: var(--spacing-2xl);
+  animation: errorShake 0.3s ease;
+}
+
+.form-row.error input,
+.form-row.error select {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
+}
+
+.form-row.error input:focus,
+.form-row.error select:focus {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.2);
+}
+
+@keyframes errorShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+/* Loading skeleton */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-secondary) 0%,
+    rgba(255, 255, 255, 0.5) 50%,
+    var(--color-bg-secondary) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeletonLoading 1.5s ease-in-out infinite;
+  border-radius: var(--radius-md);
+}
+
+@keyframes skeletonLoading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: var(--spacing-7xl) var(--spacing-xl);
+  color: var(--color-text-muted);
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  margin-bottom: var(--spacing-lg);
+  opacity: 0.5;
+}
+
+.empty-state-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.empty-state-message {
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
+}
+
+/* Responsive toast */
+@media (max-width: 768px) {
+  .toast-container {
+    top: var(--spacing-md);
+    right: var(--spacing-md);
+    left: var(--spacing-md);
+    max-width: none;
+  }
+
+  .toast {
+    min-width: auto;
+    width: 100%;
   }
 }
 
