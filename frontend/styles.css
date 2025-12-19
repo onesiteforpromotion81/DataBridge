@@ -1,0 +1,788 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "M PLUS Rounded 1c", "Kosugi Maru", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic Medium", "游ゴシック Medium", "YuGothic", "游ゴシック体", "Noto Sans JP", "メイリオ", Meiryo, sans-serif;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background-attachment: fixed;
+  padding: 40px 20px;
+  font-size: 15px;
+  color: #2c3e50;
+  line-height: 1.7;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  position: relative;
+  font-weight: 400;
+}
+
+/* Japanese-inspired background pattern */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 20% 50%, rgba(11, 99, 206, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(11, 99, 206, 0.03) 0%, transparent 50%),
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 2px,
+      rgba(11, 99, 206, 0.01) 2px,
+      rgba(11, 99, 206, 0.01) 4px
+    );
+  pointer-events: none;
+  z-index: 0;
+}
+
+body > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Artistic font styling for emphasis */
+strong, b {
+  font-family: "Noto Serif JP", "Shippori Mincho", serif;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* Decorative text elements */
+.decorative-text {
+  font-family: "Noto Serif JP", "Shippori Mincho", serif;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+h2 {
+  font-family: "Noto Serif JP", "Shippori Mincho", "Hiragino Mincho ProN", "ヒラギノ明朝 ProN", "Yu Mincho", "游明朝", serif;
+  font-size: 24px;
+  color: #1a5490;
+  border-left: 5px solid #0B63CE;
+  padding: 20px 24px;
+  margin: 0 0 32px 0;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+  border-radius: 8px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  box-shadow: 
+    0 2px 8px rgba(11, 99, 206, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  position: relative;
+  overflow: hidden;
+  text-shadow: 0 1px 2px rgba(11, 99, 206, 0.1);
+}
+
+/* Decorative corner elements */
+h2::before {
+  content: '◆';
+  position: absolute;
+  top: 12px;
+  right: 20px;
+  font-size: 12px;
+  color: rgba(11, 99, 206, 0.15);
+  font-weight: normal;
+}
+
+h2::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(11, 99, 206, 0.1) 20%,
+    rgba(11, 99, 206, 0.3) 50%,
+    rgba(11, 99, 206, 0.1) 80%,
+    transparent 100%
+  );
+}
+
+.container {
+  max-width: 680px;
+  margin: 0 auto;
+  background: #ffffff;
+  padding: 32px 36px;
+  border: 2px solid rgba(11, 99, 206, 0.15);
+  border-radius: 12px;
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.5) inset,
+    0 1px 0 rgba(255, 255, 255, 0.8) inset;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Decorative border pattern */
+.container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: linear-gradient(135deg, 
+    rgba(11, 99, 206, 0.05) 0%,
+    transparent 30%,
+    transparent 70%,
+    rgba(11, 99, 206, 0.05) 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Decorative corner accents */
+.container::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 40px;
+  height: 40px;
+  background: radial-gradient(circle, rgba(11, 99, 206, 0.08) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.container:hover {
+  box-shadow: 
+    0 6px 24px rgba(0, 0, 0, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.5) inset,
+    0 1px 0 rgba(255, 255, 255, 0.8) inset;
+  border-color: rgba(11, 99, 206, 0.25);
+  transform: translateY(-2px);
+}
+
+.container > * {
+  position: relative;
+  z-index: 1;
+}
+
+.form-row {
+  margin-bottom: 24px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  position: relative;
+  padding-bottom: 12px;
+}
+
+label {
+  display: inline-block;
+  min-width: 140px;
+  font-family: "M PLUS Rounded 1c", "Kosugi Maru", sans-serif;
+  font-weight: 700;
+  color: #34495e;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  padding-top: 12px;
+  position: relative;
+  padding-left: 24px;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+}
+
+/* Decorative bullet for labels */
+label::before {
+  content: '▸';
+  position: absolute;
+  left: 0;
+  top: 12px;
+  color: #0B63CE;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* Custom File Input with Drag & Drop */
+.file-upload-area {
+  flex: 1;
+  position: relative;
+}
+
+.file-drop-zone {
+  border: 2px dashed #cbd5e0;
+  border-radius: 8px;
+  padding: 32px 20px;
+  text-align: center;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Decorative pattern overlay */
+.file-drop-zone::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 10px,
+      rgba(11, 99, 206, 0.02) 10px,
+      rgba(11, 99, 206, 0.02) 20px
+    );
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.file-drop-zone:hover::before {
+  opacity: 1;
+}
+
+.file-drop-zone:hover,
+.file-drop-zone.drag-over {
+  border-color: #0B63CE;
+  background: #f0f7ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(11, 99, 206, 0.15);
+}
+
+.file-drop-zone.has-file {
+  border-color: #27ae60;
+  background: #f0fdf4;
+  border-style: solid;
+  padding: 20px;
+}
+
+.file-drop-zone-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.file-drop-zone-text {
+  font-family: "M PLUS Rounded 1c", "Kosugi Maru", sans-serif;
+  font-size: 15px;
+  color: #5a6c7d;
+  margin-bottom: 8px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.file-drop-zone-hint {
+  font-family: "M PLUS Rounded 1c", "Kosugi Maru", sans-serif;
+  font-size: 13px;
+  color: #95a5a6;
+  margin-top: 4px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+.file-info {
+  display: none;
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #e1e8ed;
+}
+
+.file-info.show {
+  display: block;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.file-name {
+  font-family: "M PLUS Rounded 1c", "Kosugi Maru", sans-serif;
+  font-weight: 800;
+  color: #2c3e50;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: 0.3px;
+}
+
+.file-size {
+  font-family: "M PLUS Rounded 1c", "Kosugi Maru", sans-serif;
+  font-size: 13px;
+  color: #7f8c8d;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+
+.file-remove {
+  font-family: "M PLUS Rounded 1c", "Kosugi Maru", sans-serif;
+  margin-left: auto;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.3px;
+}
+
+.file-remove:hover {
+  background: #c0392b;
+  transform: scale(1.05);
+}
+
+input[type="file"] {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+}
+
+select {
+  flex: 1;
+  padding: 10px 14px;
+  padding-right: 36px;
+  border: 2px solid #e1e8ed;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: "M PLUS Rounded 1c", "Kosugi Maru", sans-serif;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  color: #2c3e50;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%230B63CE' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  position: relative;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+select option {
+  font-family: "M PLUS Rounded 1c", "Kosugi Maru", sans-serif;
+  font-weight: 500;
+}
+
+select:hover {
+  border-color: #0B63CE;
+  background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+  box-shadow: 0 2px 4px rgba(11, 99, 206, 0.1);
+}
+
+select:focus {
+  outline: none;
+  border-color: #0B63CE;
+  box-shadow: 0 0 0 3px rgba(11, 99, 206, 0.1);
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+}
+
+button {
+  font-family: "M PLUS Rounded 1c", "Kosugi Maru", sans-serif;
+  background: linear-gradient(135deg, #0B63CE 0%, #0a5bb8 100%);
+  color: white;
+  padding: 12px 28px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 2px 8px rgba(11, 99, 206, 0.25),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+    0 1px 0 rgba(255, 255, 255, 0.2) inset;
+  transform: translateY(0);
+  letter-spacing: 1px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Decorative shine effect */
+button::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+button:hover:not(:disabled)::after {
+  left: 100%;
+}
+
+button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0a5bb8 0%, #0950a0 100%);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 4px 12px rgba(11, 99, 206, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.15) inset,
+    0 1px 0 rgba(255, 255, 255, 0.25) inset;
+}
+
+button:hover:not(:disabled)::before {
+  width: 300px;
+  height: 300px;
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(11, 99, 206, 0.2);
+  transition: all 0.1s;
+}
+
+button:disabled {
+  background: #a9c2e5;
+  cursor: not-allowed;
+  transform: translateY(0);
+  box-shadow: none;
+  opacity: 0.7;
+}
+
+button:disabled::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+#result {
+  font-family: "M PLUS Rounded 1c", "Kosugi Maru", sans-serif;
+  margin-top: 24px;
+  padding: 20px 24px;
+  border: 2px solid #e1e8ed;
+  background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+  white-space: pre-wrap;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.8;
+  color: #2c3e50;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transition: all 0.3s ease;
+  animation: fadeIn 0.4s ease;
+  position: relative;
+  overflow: hidden;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+/* Decorative corner accent */
+#result::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 60px;
+  height: 60px;
+  background: radial-gradient(circle, rgba(11, 99, 206, 0.05) 0%, transparent 70%);
+  border-radius: 0 8px 0 50px;
+  pointer-events: none;
+}
+
+#result:empty {
+  display: none;
+}
+
+#result.success {
+  animation: successPulse 0.6s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes successPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+#loader {
+  display: none;
+  margin: 12px 0;
+  font-size: 14px;
+  color: #5a6c7d;
+  text-align: center;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+progress {
+  width: 100%;
+  margin-top: 16px;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #e1e8ed;
+  border: none;
+}
+
+progress::-webkit-progress-bar {
+  background: #e1e8ed;
+  border-radius: 4px;
+}
+
+progress::-webkit-progress-value {
+  background: linear-gradient(90deg, #0B63CE 0%, #0a5bb8 100%);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+progress::-moz-progress-bar {
+  background: linear-gradient(90deg, #0B63CE 0%, #0a5bb8 100%);
+  border-radius: 4px;
+}
+
+footer {
+  font-family: "M PLUS Rounded 1c", "Kosugi Maru", sans-serif;
+  margin-top: 48px;
+  padding-top: 28px;
+  font-size: 13px;
+  color: #7f8c8d;
+  text-align: center;
+  border-top: 2px solid #e1e8ed;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  position: relative;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  margin-left: -36px;
+  margin-right: -36px;
+  margin-bottom: -32px;
+  padding-left: 36px;
+  padding-right: 36px;
+  padding-bottom: 24px;
+  border-radius: 0 0 12px 12px;
+}
+
+/* Decorative top border pattern */
+footer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 3px;
+  background: linear-gradient(90deg, 
+    transparent 0%,
+    rgba(11, 99, 206, 0.2) 20%,
+    rgba(11, 99, 206, 0.4) 50%,
+    rgba(11, 99, 206, 0.2) 80%,
+    transparent 100%
+  );
+  border-radius: 0 0 3px 3px;
+}
+
+/* Decorative corner elements */
+footer::after {
+  content: '◇';
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: rgba(11, 99, 206, 0.2);
+  letter-spacing: 8px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  body {
+    padding: 20px 12px;
+    font-size: 14px;
+  }
+
+  .container {
+    padding: 24px 20px;
+    border-radius: 8px;
+  }
+
+  h2 {
+    font-size: 20px;
+    padding: 14px 16px;
+    margin-bottom: 24px;
+  }
+
+  .form-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  label {
+    min-width: auto;
+    width: 100%;
+    margin-bottom: 4px;
+    padding-top: 0;
+  }
+
+  .file-upload-area {
+    width: 100%;
+  }
+
+  select {
+    width: 100%;
+  }
+
+  button {
+    width: 100%;
+    padding: 12px 24px;
+  }
+}
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Selection color */
+::selection {
+  background: rgba(11, 99, 206, 0.2);
+  color: #1a5490;
+}
+
+/* Decorative divider lines */
+.form-row:not(:last-of-type)::after {
+  content: '';
+  position: absolute;
+  bottom: -12px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, 
+    transparent 0%,
+    rgba(11, 99, 206, 0.1) 20%,
+    rgba(11, 99, 206, 0.1) 80%,
+    transparent 100%
+  );
+}
+
+/* Japanese-inspired wave pattern for header */
+h2 {
+  background-image: 
+    linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(11, 99, 206, 0.02) 2px,
+      rgba(11, 99, 206, 0.02) 4px
+    );
+}
+
+/* Heavy decorative border for container */
+.container {
+  background-image: 
+    linear-gradient(135deg, #ffffff 0%, #fafbfc 100%),
+    radial-gradient(circle at top right, rgba(11, 99, 206, 0.03) 0%, transparent 50%);
+}
+
+/* Decorative pattern for file drop zone */
+.file-drop-zone.has-file {
+  background-image: 
+    linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%),
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 8px,
+      rgba(39, 174, 96, 0.03) 8px,
+      rgba(39, 174, 96, 0.03) 16px
+    );
+}
+
+/* Heavy decoration for button */
+button {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+button::before {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Decorative elements for result box */
+#result.success::after {
+  content: '✓';
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  font-size: 20px;
+  color: #27ae60;
+  font-weight: bold;
+  animation: checkmark 0.5s ease;
+}
+
+@keyframes checkmark {
+  0% {
+    transform: scale(0) rotate(0deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2) rotate(180deg);
+  }
+  100% {
+    transform: scale(1) rotate(360deg);
+    opacity: 1;
+  }
+}
+
