@@ -477,41 +477,187 @@ input[type="file"] {
 
 select {
   flex: 1;
-  padding: 10px 14px;
-  padding-right: 36px;
-  border: 2px solid #e1e8ed;
-  border-radius: 8px;
-  font-size: 14px;
-  font-family: "M PLUS Rounded 1c", "Kosugi Maru", sans-serif;
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-  color: #2c3e50;
-  transition: all 0.2s ease;
+  padding: var(--spacing-md) var(--spacing-lg);
+  padding-right: var(--spacing-5xl);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-base);
+  font-family: var(--font-family-body);
+  background: linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%);
+  color: var(--color-text-primary);
+  transition: all var(--transition-base);
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%230B63CE' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Cpath fill='%230B63CE' d='M7 10L2 5h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 12px center;
+  background-position: right var(--spacing-md) center;
   position: relative;
-  font-weight: 600;
-  letter-spacing: 0.3px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-normal);
+  min-height: 44px; /* Touch-friendly */
+  box-shadow: var(--shadow-sm);
+  -webkit-appearance: none;
+  -moz-appearance: none;
 }
 
-select option {
-  font-family: "M PLUS Rounded 1c", "Kosugi Maru", sans-serif;
-  font-weight: 500;
+/* Remove arrow for select inside wrapper */
+.select-wrapper select {
+  background-image: none;
+}
+
+/* Visual feedback for selected value */
+select:not([value=""]):not(:invalid) {
+  border-color: var(--color-primary-alpha-20);
+  background: linear-gradient(135deg, rgba(11, 99, 206, 0.02) 0%, var(--color-bg-primary) 100%);
+}
+
+select:not([value=""]):not(:invalid):hover {
+  border-color: var(--color-primary);
+}
+
+/* Empty/placeholder state */
+select:invalid,
+select[value=""] {
+  color: var(--color-text-muted);
+}
+
+select:invalid option:not([value=""]),
+select[value=""] option:not([value=""]) {
+  color: var(--color-text-primary);
+}
+
+/* Loading state for select */
+select[disabled] {
+  position: relative;
+}
+
+select[disabled]::before {
+  content: '';
+  position: absolute;
+  right: var(--spacing-5xl);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-primary-alpha-20);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
 select:hover {
-  border-color: #0B63CE;
-  background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
-  box-shadow: 0 2px 4px rgba(11, 99, 206, 0.1);
+  border-color: var(--color-primary);
+  background: linear-gradient(135deg, rgba(11, 99, 206, 0.02) 0%, var(--color-bg-primary) 100%);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
 select:focus {
   outline: none;
-  border-color: #0B63CE;
-  box-shadow: 0 0 0 3px rgba(11, 99, 206, 0.1);
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+  background: linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%);
+}
+
+select:disabled {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+select option {
+  font-family: var(--font-family-body);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-base);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border: none;
+  min-height: 44px; /* Touch-friendly */
+  line-height: var(--line-height-normal);
+  transition: all var(--transition-base);
+}
+
+/* Enhanced option styling for better browser support */
+select option:hover {
+  background: linear-gradient(135deg, var(--color-primary-alpha-10) 0%, rgba(11, 99, 206, 0.05) 100%);
+  color: var(--color-primary-dark);
+  font-weight: var(--font-weight-semibold);
+  padding-left: calc(var(--spacing-lg) + var(--spacing-xs));
+}
+
+select option:checked,
+select option:focus {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: white;
+  font-weight: var(--font-weight-bold);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+select option:disabled {
+  color: var(--color-text-disabled);
+  background: var(--color-bg-secondary);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Placeholder option styling */
+select option[value=""],
+select option:first-child {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+select option[value=""]:checked,
+select option:first-child:checked {
+  color: rgba(255, 255, 255, 0.8);
+  font-style: normal;
+}
+
+/* Custom select wrapper for enhanced styling */
+.select-wrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.select-wrapper::after {
+  content: '';
+  position: absolute;
+  right: var(--spacing-lg);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid var(--color-primary);
+  pointer-events: none;
+  z-index: 2;
+  transition: all var(--transition-base);
+}
+
+.select-wrapper:hover::after {
+  border-top-color: var(--color-primary-dark);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.select-wrapper:focus-within::after {
+  border-top-color: var(--color-primary-dark);
+  transform: translateY(-50%) rotate(180deg);
+}
+
+/* Remove default arrow when inside wrapper */
+.select-wrapper select {
+  background-image: none;
+  padding-right: var(--spacing-5xl);
+}
+
+/* Enhanced select styling when in wrapper */
+.select-wrapper select {
+  width: 100%;
 }
 
 button {
@@ -794,6 +940,10 @@ footer::after {
   }
 
   .file-upload-area {
+    width: 100%;
+  }
+
+  .select-wrapper {
     width: 100%;
   }
 
