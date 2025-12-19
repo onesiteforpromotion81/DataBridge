@@ -50,16 +50,73 @@
     button {
       background: #0B63CE;
       color: white;
-      padding: 8px 18px;
+      padding: 10px 24px;
       border: none;
-      border-radius: 4px;
+      border-radius: 6px;
       font-size: 13px;
+      font-weight: 500;
       cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 4px rgba(11, 99, 206, 0.2);
+      transform: translateY(0);
+    }
+
+    button::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+
+    button:hover:not(:disabled) {
+      background: #0a5bb8;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(11, 99, 206, 0.3);
+    }
+
+    button:hover:not(:disabled)::before {
+      width: 300px;
+      height: 300px;
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(0);
+      box-shadow: 0 2px 4px rgba(11, 99, 206, 0.2);
+      transition: all 0.1s;
     }
 
     button:disabled {
       background: #a9c2e5;
-      cursor: default;
+      cursor: not-allowed;
+      transform: translateY(0);
+      box-shadow: none;
+      opacity: 0.7;
+    }
+
+    button:disabled::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 16px;
+      height: 16px;
+      margin: -8px 0 0 -8px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
 
     #result {
@@ -178,6 +235,7 @@
       }
 
       submitBtn.disabled = true;
+      submitBtn.textContent = "アップロード中...";
       progressBar.style.display = "block";
       progressBar.value = 0;
       resultDiv.textContent = "アップロード中…";
@@ -198,6 +256,7 @@
 
         xhr.onload = () => {
           submitBtn.disabled = false;
+          submitBtn.textContent = "アップロード";
           if (xhr.status >= 200 && xhr.status < 300) {
             const json = JSON.parse(xhr.responseText);
             console.log("json: ", json);
@@ -210,11 +269,14 @@
         xhr.onerror = () => {
           resultDiv.textContent = "通信エラーが発生しました。";
           submitBtn.disabled = false;
+          submitBtn.textContent = "アップロード";
         };
 
         xhr.send(formData);
       } catch (err) {
         resultDiv.textContent = "エラー：" + err.message;
+        submitBtn.disabled = false;
+        submitBtn.textContent = "アップロード";
       }
     });
   </script>
