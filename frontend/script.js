@@ -175,6 +175,22 @@ async function api(url, options = {}) {
   return data;
 }
 
+// Store all available types for CSV detection
+let allAvailableTypes = [];
+
+// Mapping from file prefixes to Japanese display names (from constants_6_15.js)
+const FILE_ITEM_MATCH = {
+  F0_TOM: ["取引先"],
+  F0_SOM: ["商品管理"],
+  F0_TKM: ["個別単価"],
+  F0_MSM: ["ユーザー", "金種", "伝票種別", "年商規模", "業務形態", "立地条件", "メーカー", "銘柄", "原料", "原産地", "製造区分", "配送コース", "倉庫", "貯蔵区分", "地区", "部門", "支店", "備考"],
+  F0_SHM: ["商品関連付"],
+  F0_SZM: ["ロケーション"]
+};
+
+// Note: The API returns Japanese display names, not handler names
+// So we match Japanese names directly from FILE_ITEM_MATCH
+
 async function loadTypes() {
   loader.textContent = "読み込み中…";
   loader.classList.remove("sr-only");
@@ -183,10 +199,17 @@ async function loadTypes() {
   try {
     const data = await api(`${API_BASE}/types`);
     if (data.types && data.types.length > 0) {
+      allAvailableTypes = data.types; // Store for CSV detection
       typeSelect.innerHTML = '<option value="">選択してください</option>' +
         data.types.map(t => `<option value="${t}">${t}</option>`).join("");
       typeSelect.disabled = false;
       showToast("success", "読み込み完了", `${data.types.length}種類のタイプを読み込みました。`, 3000);
+      
+      // If file is already selected, detect its type from filename
+      const file = fileInput.files[0];
+      if (file) {
+        updateSelectFromFilename(file.name, allAvailableTypes);
+      }
     } else {
       typeSelect.innerHTML = '<option value="" disabled>タイプが見つかりません</option>';
       showToast("warning", "警告", "利用可能なタイプが見つかりませんでした。");
@@ -202,16 +225,120 @@ async function loadTypes() {
 }
 
 // ============================================
+// CSV TYPE DETECTION FROM FILENAME
+// ============================================
+/**
+ * Detects CSV type based on filename prefix (F0_TOM, F0_SOM, etc.)
+ * Returns array of matching Japanese display names (which match what the API returns)
+ */
+function detectCSVTypeFromFilename(filename) {
+  if (!filename) return [];
+  
+  const upperFilename = filename.toUpperCase();
+  const matchingJapaneseNames = [];
+  
+  // Check for file prefix patterns (case-insensitive)
+  for (const [prefix, japaneseNames] of Object.entries(FILE_ITEM_MATCH)) {
+    if (upperFilename.includes(prefix)) {
+      // Add all Japanese names for this prefix
+      for (const japaneseName of japaneseNames) {
+        if (!matchingJapaneseNames.includes(japaneseName)) {
+          matchingJapaneseNames.push(japaneseName);
+        }
+      }
+    }
+  }
+  
+  // Debug logging
+  if (matchingJapaneseNames.length > 0) {
+    console.log(`[CSV Detection] Filename: "${filename}" → Detected prefixes → Japanese names:`, matchingJapaneseNames);
+  }
+  
+  return matchingJapaneseNames;
+}
+
+/**
+ * Updates select dropdown based on detected CSV type from filename
+ */
+function updateSelectFromFilename(filename, allTypes) {
+  if (!filename || !allTypes || allTypes.length === 0) {
+    return;
+  }
+
+  try {
+    const matchingJapaneseNames = detectCSVTypeFromFilename(filename);
+    
+    if (matchingJapaneseNames.length === 0) {
+      // No match found, show all types
+      typeSelect.innerHTML = '<option value="">選択してください</option>' +
+        allTypes.map(t => `<option value="${t}">${t}</option>`).join("");
+      showToast("info", "タイプ検出", "ファイル名からCSVタイプを自動検出できませんでした。手動で選択してください。", 4000);
+      return;
+    }
+    
+    // Filter available types to only matching ones (allTypes contains Japanese names)
+    const availableTypes = allTypes.filter(t => matchingJapaneseNames.includes(t));
+    
+    if (availableTypes.length === 0) {
+      // No matching types found in available handlers
+      // This might happen if the filename prefix doesn't match any known pattern
+      // or if the detected Japanese names don't exist in the available types
+      console.log('Debug: Filename:', filename);
+      console.log('Debug: Detected Japanese names:', matchingJapaneseNames);
+      console.log('Debug: Available types:', allTypes);
+      typeSelect.innerHTML = '<option value="">選択してください</option>' +
+        allTypes.map(t => `<option value="${t}">${t}</option>`).join("");
+      showToast("warning", "タイプ不一致", `ファイル名「${filename}」から検出されたタイプが利用可能なタイプと一致しませんでした。`, 4000);
+      return;
+    }
+    
+    // Update select with matching types
+    typeSelect.innerHTML = '<option value="">選択してください</option>' +
+      availableTypes.map(t => `<option value="${t}">${t}</option>`).join("");
+    
+    // Auto-select if only one match
+    if (availableTypes.length === 1) {
+      typeSelect.value = availableTypes[0];
+      clearFieldError(typeRow, typeError);
+      showToast("success", "タイプ自動選択", `CSVタイプ「${availableTypes[0]}」を自動選択しました。`, 3000);
+    } else {
+      showToast("info", "タイプ検出", `${availableTypes.length}種類の一致するタイプが見つかりました。選択してください。`, 4000);
+    }
+    
+    typeSelect.disabled = false;
+  } catch (error) {
+    console.error('Error updating select from filename:', error);
+    // On error, show all types
+    typeSelect.innerHTML = '<option value="">選択してください</option>' +
+      allTypes.map(t => `<option value="${t}">${t}</option>`).join("");
+  }
+}
+
+// ============================================
 // FILE HANDLING
 // ============================================
 fileInput.addEventListener("change", (e) => {
   const file = e.target.files[0];
   updateFileDisplay(file);
+  
+  // Detect CSV type from filename and update select
+  if (file && allAvailableTypes.length > 0) {
+    updateSelectFromFilename(file.name, allAvailableTypes);
+  }
 });
 
 fileRemove.addEventListener("click", (e) => {
   e.stopPropagation();
   updateFileDisplay(null);
+  
+  // Reset select dropdown to show all types
+  if (allAvailableTypes.length > 0) {
+    typeSelect.innerHTML = '<option value="">選択してください</option>' +
+      allAvailableTypes.map(t => `<option value="${t}">${t}</option>`).join("");
+    typeSelect.value = "";
+    clearFieldError(typeRow, typeError);
+  }
+  
   showToast("info", "ファイル削除", "ファイルが削除されました。");
 });
 
@@ -234,6 +361,11 @@ dropZone.addEventListener("drop", (e) => {
     const file = files[0];
     fileInput.files = files;
     updateFileDisplay(file);
+    
+    // Detect CSV type from filename and update select
+    if (allAvailableTypes.length > 0) {
+      updateSelectFromFilename(file.name, allAvailableTypes);
+    }
   }
 });
 
