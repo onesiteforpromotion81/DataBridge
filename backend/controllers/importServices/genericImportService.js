@@ -12,7 +12,7 @@ export async function importGenericTable(handler, table, filteredData) {
     return {
       message: "No rows matched the filter",
       inserted: 0,
-      tableName: table
+      tableNames: [table]
     };
   }
 
@@ -46,12 +46,17 @@ export async function importGenericTable(handler, table, filteredData) {
   await bulkInsert(table, dbColumns, csvColumns, filteredData);
 
   // Handle special post-insert logic
-  await handlePostInsert(table, filteredData);
+  const additionalTables = await handlePostInsert(table, filteredData);
+  
+  const tableNames = [table];
+  if (additionalTables && additionalTables.length > 0) {
+    tableNames.push(...additionalTables);
+  }
 
   return {
     message: "CSVの処理が正常に完了しました",
     inserted: filteredData.length,
-    tableName: table
+    tableNames
   };
 }
 
@@ -109,8 +114,11 @@ async function bulkInsert(table, dbColumns, csvColumns, filteredData) {
 
 /**
  * Handle post-insert operations (e.g., role assignment for users)
+ * @returns {Promise<Array<string>>} Additional table names that were inserted into
  */
 async function handlePostInsert(table, filteredData) {
+  const additionalTables = [];
+  
   if (table === "users") {
     const [users] = await pool.query(
       `SELECT id FROM users ORDER BY id DESC LIMIT ?`,
@@ -129,7 +137,10 @@ async function handlePostInsert(table, filteredData) {
 
       await pool.query(roleSQL);
       console.log(`Assigned role_id=1 to ${users.length} users`);
+      additionalTables.push("model_has_roles");
     }
   }
+  
+  return additionalTables;
 }
 

@@ -71,7 +71,15 @@ export async function importPartners(data) {
         message: "Partner CSV processed successfully",
         inserted,
         failed,
-        tableName: "partners (multi-table import)",
+        tableNames: [
+          "partners",
+          "suppliers",
+          "supplier_details",
+          "buyers",
+          "buyer_details",
+          "partner_closing_details",
+          "partner_timetables"
+        ],
       };
     }
 
@@ -110,7 +118,15 @@ export async function importPartners(data) {
       message: "Partner CSV processed successfully",
       inserted,
       failed,
-      tableName: "partners (multi-table import)"
+      tableNames: [
+        "partners",
+        "suppliers",
+        "supplier_details",
+        "buyers",
+        "buyer_details",
+        "partner_closing_details",
+        "partner_timetables"
+      ]
     };
   } catch (err) {
     console.error("Partner CSV import failed:", err);
