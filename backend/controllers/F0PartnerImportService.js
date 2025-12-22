@@ -144,8 +144,8 @@ export async function processPartner(row, conn, ctx) {
   // await conn.beginTransaction();
   try {
     const code = key(row.T0101);
-    if (!code) return false;
-    if (ctx?.existingPartnerCodes?.has(code)) return null;
+    if (!code) return { success: false, rowsInserted: 0 };
+    if (ctx?.existingPartnerCodes?.has(code)) return { success: null, rowsInserted: 0 };
 
     // Insert Partner
     const timeout = Number(ctx?.queryTimeoutMs || process.env.DB_QUERY_TIMEOUT_MS || 120000);
@@ -174,6 +174,7 @@ export async function processPartner(row, conn, ctx) {
       isSupplier ? 1 : 0
     ]);
     const partner_id = p.insertId;
+    let totalRowsInserted = 1; // partners table
 
     await q(`UPDATE partners SET bill_group_id=?, partner_price_group_id=? WHERE id=?`,
       [partner_id, partner_id, partner_id]);
@@ -187,6 +188,8 @@ export async function processPartner(row, conn, ctx) {
         [client_id, partner_id, partnerCategory]
       );
       const supplier_id = s.insertId;
+      totalRowsInserted += 1; // suppliers table
+      
       await q(`
         INSERT INTO supplier_details
           (code, start_date, supplier_id, branch_id, department_id, salesman_id, slip_fraction, partner_print_type,
@@ -206,6 +209,7 @@ export async function processPartner(row, conn, ctx) {
         taxFractionEnum[row.T0705],
         paymentMethodEnum[row.T2501]
       ]);
+      totalRowsInserted += 1; // supplier_details table
     } else {
       const partnerCategory = buyerEnum(t02Num);
       if (!partnerCategory) {
@@ -248,6 +252,8 @@ export async function processPartner(row, conn, ctx) {
         throw insertErr;
       }
       const buyer_id = b.insertId;
+      totalRowsInserted += 1; // buyers table
+      
       await q(`
           INSERT INTO buyer_details
             (code, start_date, bill_collector_id, slip_type_id, buyer_id, branch_id, department_id, salesman_id, delivery_course_id,
@@ -278,6 +284,7 @@ export async function processPartner(row, conn, ctx) {
           cashCollectionMethodEnum[row.T2509],
           row.T2513
       ]);
+      totalRowsInserted += 1; // buyer_details table
     }
 
     // Ledger Closing Pattern
@@ -319,6 +326,7 @@ export async function processPartner(row, conn, ctx) {
           closing_date, deposit_plan, deposit_date, updated_by, updated_at)
         VALUES ?
       `, [closingRows]);
+      totalRowsInserted += closingRows.length; // partner_closing_details table
     }
 
     // Partner Timetables (T2201 + T2203_x fields)
@@ -350,9 +358,10 @@ export async function processPartner(row, conn, ctx) {
           thursday, friday, saturday, updated_at)
         VALUES ?
       `, [weeks.map(w => [partner_id, w, client_id, ...days, row.T29 || default_date])]);
+      totalRowsInserted += weeks.length; // partner_timetables table
     }
     ctx?.existingPartnerCodes?.add(code);
-    return true;
+    return { success: true, rowsInserted: totalRowsInserted };
 
   } catch(err){
     // await conn.rollback();
@@ -383,7 +392,7 @@ export async function processPartner(row, conn, ctx) {
     ) {
       throw err; // 🔥 VERY IMPORTANT
     }
-    return false;
+    return { success: false, rowsInserted: 0 };
   } finally {
     // conn.release();
   }
@@ -408,7 +417,7 @@ export async function importOneItem(row) {
       // Item already exists → skip importing
       await conn.rollback();
       conn.release();
-      return { skipped: true, reason: "ITEM_ALREADY_EXISTS", code: itemCode };
+      return { skipped: true, reason: "ITEM_ALREADY_EXISTS", code: itemCode, rowsInserted: 0 };
     }
 
     // ----------------------------------------------------
@@ -462,6 +471,7 @@ export async function importOneItem(row) {
     ]);
 
     const item_id = item.insertId;
+    totalRowsInserted += 1; // items table
 
     // ----------------------------------------------------
     // 4) INSERT item_search_information
@@ -481,6 +491,7 @@ export async function importOneItem(row) {
            VALUES (?, ?, ?, ?, 'PIECE', ?)`,
           [client_id, item_id, s.code, s.type, 0]
         );
+        totalRowsInserted += 1; // item_search_information table
       }
     }
 
@@ -523,6 +534,7 @@ export async function importOneItem(row) {
 
     for (let i = 1; i <= 5; i++) {
       await insertPrice(i);
+      totalRowsInserted += 1; // item_prices table (5 rows per item)
     }
 
     // ----------------------------------------------------
@@ -531,13 +543,13 @@ export async function importOneItem(row) {
     await conn.commit();
     conn.release();
 
-    return { success: true, item_id };
+    return { success: true, item_id, rowsInserted: totalRowsInserted };
 
   } catch (err) {
     await conn.rollback();
     conn.release();
     console.error("Item Import Failed:", row, err);
-    return { success: false, error: err.message };
+    return { success: false, error: err.message, rowsInserted: 0 };
   }
 }
 

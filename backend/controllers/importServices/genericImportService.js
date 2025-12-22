@@ -12,7 +12,12 @@ export async function importGenericTable(handler, table, filteredData) {
     return {
       message: "No rows matched the filter",
       inserted: 0,
-      tableNames: [table]
+      skipped: 0,
+      failed: 0,
+      tableNames: [table],
+      tableStats: {
+        [table]: { inserted: 0, skipped: 0, failed: 0 }
+      }
     };
   }
 
@@ -42,21 +47,34 @@ export async function importGenericTable(handler, table, filteredData) {
   // Create unique index if needed
   await ensureUniqueIndex(table, uniqueColumns);
 
-  // Bulk insert
-  await bulkInsert(table, dbColumns, csvColumns, filteredData);
-
-  // Handle special post-insert logic
-  const additionalTables = await handlePostInsert(table, filteredData);
+  // Bulk insert and get statistics
+  const mainTableStats = await bulkInsert(table, dbColumns, csvColumns, filteredData);
+  
+  // Handle special post-insert logic and get statistics for additional tables
+  const additionalTableStats = await handlePostInsert(table, filteredData);
   
   const tableNames = [table];
-  if (additionalTables && additionalTables.length > 0) {
-    tableNames.push(...additionalTables);
+  if (additionalTableStats && Object.keys(additionalTableStats).length > 0) {
+    tableNames.push(...Object.keys(additionalTableStats));
   }
+
+  // Build table statistics
+  const tableStats = {
+    [table]: mainTableStats
+  };
+  
+  // Add statistics for additional tables
+  Object.keys(additionalTableStats).forEach(additionalTable => {
+    tableStats[additionalTable] = additionalTableStats[additionalTable];
+  });
 
   return {
     message: "CSVの処理が正常に完了しました",
-    inserted: filteredData.length,
-    tableNames
+    inserted: mainTableStats.inserted,
+    skipped: mainTableStats.skipped,
+    failed: mainTableStats.failed,
+    tableNames,
+    tableStats
   };
 }
 
@@ -95,7 +113,8 @@ async function ensureUniqueIndex(table, uniqueColumns) {
 }
 
 /**
- * Perform bulk insert
+ * Perform bulk insert and return statistics
+ * @returns {Promise<Object>} Statistics with inserted, skipped, failed counts
  */
 async function bulkInsert(table, dbColumns, csvColumns, filteredData) {
   const placeholders = filteredData
@@ -109,15 +128,27 @@ async function bulkInsert(table, dbColumns, csvColumns, filteredData) {
     VALUES ${placeholders}
   `;
 
-  await pool.query(sql, values);
+  const [result] = await pool.query(sql, values);
+  
+  // With INSERT IGNORE, affectedRows tells us how many rows were actually inserted
+  // Rows that were skipped due to duplicates don't count as affected
+  const inserted = result.affectedRows || 0;
+  const skipped = filteredData.length - inserted;
+  const failed = 0; // Bulk inserts either succeed or throw an error
+  
+  return {
+    inserted,
+    skipped,
+    failed
+  };
 }
 
 /**
  * Handle post-insert operations (e.g., role assignment for users)
- * @returns {Promise<Array<string>>} Additional table names that were inserted into
+ * @returns {Promise<Object>} Statistics for additional tables that were inserted into
  */
 async function handlePostInsert(table, filteredData) {
-  const additionalTables = [];
+  const additionalTableStats = {};
   
   if (table === "users") {
     const [users] = await pool.query(
@@ -135,12 +166,20 @@ async function handlePostInsert(table, filteredData) {
         VALUES ${roleInsertValues}
       `;
 
-      await pool.query(roleSQL);
-      console.log(`Assigned role_id=1 to ${users.length} users`);
-      additionalTables.push("model_has_roles");
+      const [result] = await pool.query(roleSQL);
+      const inserted = result.affectedRows || 0;
+      const skipped = users.length - inserted;
+      
+      additionalTableStats.model_has_roles = {
+        inserted,
+        skipped,
+        failed: 0
+      };
+      
+      console.log(`Assigned role_id=1 to ${users.length} users (inserted: ${inserted}, skipped: ${skipped})`);
     }
   }
   
-  return additionalTables;
+  return additionalTableStats;
 }
 
