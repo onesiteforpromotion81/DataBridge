@@ -56,7 +56,11 @@ export async function importItems(data) {
       inserted,
       skipped,
       failed,
-      tableName: "items (multi-table import)",
+      tableNames: [
+        "items",
+        "item_search_information",
+        "item_prices"
+      ],
     };
   }
 
@@ -89,7 +93,11 @@ export async function importItems(data) {
     inserted,
     skipped,
     failed,
-    tableName: "items (multi-table import)"
+    tableNames: [
+      "items",
+      "item_search_information",
+      "item_prices"
+    ]
   };
 }
 

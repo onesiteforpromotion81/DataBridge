@@ -448,7 +448,16 @@ uploadForm.addEventListener("submit", async (e) => {
           let message = `✅ ${json.message}\n\n📊 処理結果：\n   • 追加: ${inserted} 行\n`;
           if (failed > 0) message += `   • 失敗: ${failed} 行\n`;
           if (skipped > 0) message += `   • スキップ: ${skipped} 行\n`;
-          message += `\n📋 テーブル: "${json.tableName}"`;
+          
+          // Display table names (support both tableNames array and tableName string for backward compatibility)
+          const tableNames = json.tableNames || (json.tableName ? [json.tableName] : []);
+          if (tableNames.length > 0) {
+            if (tableNames.length === 1) {
+              message += `\n📋 テーブル: ${tableNames[0]}`;
+            } else {
+              message += `\n📋 テーブル (${tableNames.length}件):\n   ${tableNames.map(t => `• ${t}`).join('\n   ')}`;
+            }
+          }
           
           resultDiv.textContent = message;
           resultDiv.style.borderColor = "#27ae60";
