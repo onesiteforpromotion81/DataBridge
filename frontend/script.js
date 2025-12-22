@@ -7,7 +7,10 @@ const ALLOWED_FILE_TYPES = ['.csv'];
 // DOM Elements
 const fileInput = document.getElementById("file");
 const typeSelect = document.getElementById("type");
-const progressBar = document.getElementById("progress");
+const progressContainer = document.getElementById("progressContainer");
+const progressBarFill = document.getElementById("progressBarFill");
+const progressPercentage = document.getElementById("progressPercentage");
+const progressStatus = document.getElementById("progressStatus");
 const loader = document.getElementById("loader");
 const submitBtn = document.getElementById("submitBtn");
 const resultDiv = document.getElementById("result");
@@ -407,9 +410,11 @@ uploadForm.addEventListener("submit", async (e) => {
   submitBtn.disabled = true;
   submitBtn.textContent = "アップロード中...";
   submitBtn.setAttribute("aria-busy", "true");
-  progressBar.style.display = "block";
-  progressBar.value = 0;
-  progressBar.setAttribute("aria-valuenow", "0");
+  progressContainer.style.display = "block";
+  progressContainer.setAttribute("aria-valuenow", "0");
+  progressBarFill.style.width = "0%";
+  progressPercentage.textContent = "0%";
+  progressStatus.textContent = "ファイルをアップロードしています...";
   resultDiv.textContent = "⏳ アップロード中…";
   resultDiv.style.borderColor = "#e1e8ed";
   resultDiv.style.background = "linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%)";
@@ -424,11 +429,25 @@ uploadForm.addEventListener("submit", async (e) => {
     xhr.open("POST", `${API_BASE}/upload`);
     
     xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) {
+      if (e.loaded && e.total) {
         const percent = Math.round((e.loaded / e.total) * 100);
-        progressBar.value = percent;
-        progressBar.setAttribute("aria-valuenow", percent);
-        progressBar.setAttribute("aria-label", `アップロード進捗: ${percent}%`);
+        progressContainer.setAttribute("aria-valuenow", percent);
+        progressBarFill.style.width = `${percent}%`;
+        progressPercentage.textContent = `${percent}%`;
+        progressContainer.setAttribute("aria-label", `アップロード進捗: ${percent}%`);
+        
+        // Update status text based on progress
+        if (percent < 30) {
+          progressStatus.textContent = "ファイルを読み込んでいます...";
+        } else if (percent < 60) {
+          progressStatus.textContent = "サーバーに送信中...";
+        } else if (percent < 90) {
+          progressStatus.textContent = "データを処理しています...";
+        } else if (percent < 100) {
+          progressStatus.textContent = "ほぼ完了です...";
+        } else {
+          progressStatus.textContent = "完了！";
+        }
       }
     };
     
@@ -436,7 +455,17 @@ uploadForm.addEventListener("submit", async (e) => {
       submitBtn.disabled = false;
       submitBtn.textContent = "アップロード";
       submitBtn.setAttribute("aria-busy", "false");
-      progressBar.style.display = "none";
+      
+      // Complete progress bar animation
+      progressContainer.setAttribute("aria-valuenow", "100");
+      progressBarFill.style.width = "100%";
+      progressPercentage.textContent = "100%";
+      progressStatus.textContent = "アップロード完了！";
+      
+      // Hide progress bar after a short delay
+      setTimeout(() => {
+        progressContainer.style.display = "none";
+      }, 1000);
       
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
@@ -445,9 +474,17 @@ uploadForm.addEventListener("submit", async (e) => {
           const failed = json.failed || 0;
           const skipped = json.skipped || 0;
           
-          let message = `✅ ${json.message}\n\n📊 処理結果：\n   • 追加: ${inserted} 行\n`;
-          if (failed > 0) message += `   • 失敗: ${failed} 行\n`;
+          let message = `✅ ${json.message}\n\n📊 処理結果：\n`;
+          
+          // Show total database rows inserted across all tables if available
+          if (json.totalRowsInserted !== undefined) {
+            message += `   • 追加: ${json.totalRowsInserted} 行 (全テーブル合計)\n`;
+          } else {
+            message += `   • 追加: ${inserted} 行\n`;
+          }
+          
           if (skipped > 0) message += `   • スキップ: ${skipped} 行\n`;
+          if (failed > 0) message += `   • 失敗: ${failed} 行\n`;
           
           // Display table names (support both tableNames array and tableName string for backward compatibility)
           const tableNames = json.tableNames || (json.tableName ? [json.tableName] : []);
@@ -457,6 +494,24 @@ uploadForm.addEventListener("submit", async (e) => {
             } else {
               message += `\n📋 テーブル (${tableNames.length}件):\n   ${tableNames.map(t => `• ${t}`).join('\n   ')}`;
             }
+          }
+          
+          // Display per-table statistics if available (for all import types)
+          if (json.tableStats && Object.keys(json.tableStats).length > 0) {
+            message += `\n\n📈 テーブル別統計：\n`;
+            Object.keys(json.tableStats).forEach(table => {
+              const stats = json.tableStats[table];
+              const parts = [];
+              if (stats.inserted > 0) parts.push(`追加: ${stats.inserted}`);
+              if (stats.skipped > 0) parts.push(`スキップ: ${stats.skipped}`);
+              if (stats.failed > 0) parts.push(`失敗: ${stats.failed}`);
+              if (parts.length > 0) {
+                message += `   • ${table}: ${parts.join(', ')}\n`;
+              } else {
+                // Show zero counts if all are zero
+                message += `   • ${table}: 追加: 0, スキップ: 0, 失敗: 0\n`;
+              }
+            });
           }
           
           resultDiv.textContent = message;
@@ -502,7 +557,7 @@ uploadForm.addEventListener("submit", async (e) => {
       submitBtn.disabled = false;
       submitBtn.textContent = "アップロード";
       submitBtn.setAttribute("aria-busy", "false");
-      progressBar.style.display = "none";
+      progressContainer.style.display = "none";
     };
     
     xhr.ontimeout = () => {
@@ -514,7 +569,7 @@ uploadForm.addEventListener("submit", async (e) => {
       submitBtn.disabled = false;
       submitBtn.textContent = "アップロード";
       submitBtn.setAttribute("aria-busy", "false");
-      progressBar.style.display = "none";
+      progressContainer.style.display = "none";
     };
     
     xhr.timeout = 300000; // 5 minutes timeout
@@ -529,7 +584,7 @@ uploadForm.addEventListener("submit", async (e) => {
     submitBtn.disabled = false;
     submitBtn.textContent = "アップロード";
     submitBtn.setAttribute("aria-busy", "false");
-    progressBar.style.display = "none";
+    progressContainer.style.display = "none";
   }
 });
 

@@ -13,6 +13,7 @@ export async function importItems(data) {
   let processed = 0;
   let failed = 0;
   let skipped = 0;
+  let totalRowsInserted = 0; // Total database rows inserted across all tables
 
   // Concurrency mode: best for high-latency remote DB connections
   if (concurrency > 1) {
@@ -30,6 +31,7 @@ export async function importItems(data) {
           const result = await importOneItem(row);
           if (result?.success) {
             inserted++;
+            totalRowsInserted += result.rowsInserted || 0;
           } else if (result?.skipped) {
             skipped++;
           } else {
@@ -56,6 +58,7 @@ export async function importItems(data) {
       inserted,
       skipped,
       failed,
+      totalRowsInserted, // Total database rows inserted across all tables
       tableNames: [
         "items",
         "item_search_information",
@@ -70,6 +73,7 @@ export async function importItems(data) {
       const result = await importOneItem(row);
       if (result?.success) {
         inserted++;
+        totalRowsInserted += result.rowsInserted || 0;
       } else if (result?.skipped) {
         skipped++;
       } else {
@@ -93,6 +97,7 @@ export async function importItems(data) {
     inserted,
     skipped,
     failed,
+    totalRowsInserted, // Total database rows inserted across all tables
     tableNames: [
       "items",
       "item_search_information",

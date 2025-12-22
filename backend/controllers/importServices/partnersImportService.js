@@ -18,6 +18,8 @@ export async function importPartners(data) {
   let inserted = 0;
   let processed = 0;
   let failed = 0;
+  let skipped = 0;
+  let totalRowsInserted = 0; // Total database rows inserted across all tables
 
   try {
     // Build lookup caches + existing partner code set BEFORE the transaction
@@ -40,13 +42,18 @@ export async function importPartners(data) {
           const conn = await pool.getConnection();
           try {
             await conn.beginTransaction();
-            const success = await processPartner(row, conn, ctx);
-            if (success) {
+            const result = await processPartner(row, conn, ctx);
+            if (result?.success === true) {
               await conn.commit();
               inserted++;
+              totalRowsInserted += result.rowsInserted || 0;
             } else {
               await conn.rollback();
-              if (success === false) failed++;
+              if (result?.success === false) {
+                failed++;
+              } else if (result?.success === null) {
+                skipped++;
+              }
             }
           } catch (e) {
             try { await conn.rollback(); } catch {}
@@ -70,7 +77,9 @@ export async function importPartners(data) {
       return {
         message: "Partner CSV processed successfully",
         inserted,
+        skipped,
         failed,
+        totalRowsInserted, // Total database rows inserted across all tables
         tableNames: [
           "partners",
           "suppliers",
@@ -89,9 +98,15 @@ export async function importPartners(data) {
       await conn.beginTransaction();
 
       for (const row of data) {
-        const success = await processPartner(row, conn, ctx);
-        if (success) inserted++;
-        else if (success === false) failed++;
+        const result = await processPartner(row, conn, ctx);
+        if (result?.success === true) {
+          inserted++;
+          totalRowsInserted += result.rowsInserted || 0;
+        } else if (result?.success === false) {
+          failed++;
+        } else if (result?.success === null) {
+          skipped++;
+        }
         processed++;
 
         if (progressEvery > 0 && processed % progressEvery === 0) {
@@ -117,7 +132,9 @@ export async function importPartners(data) {
     return { 
       message: "Partner CSV processed successfully",
       inserted,
+      skipped,
       failed,
+      totalRowsInserted, // Total database rows inserted across all tables
       tableNames: [
         "partners",
         "suppliers",
