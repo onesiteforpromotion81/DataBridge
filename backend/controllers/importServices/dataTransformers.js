@@ -31,9 +31,6 @@ export async function transformData(handler, table, data) {
   // Resolve foreign keys
   filteredData = await resolveForeignKeys(filteredData, table);
   
-  // Special transformations
-  filteredData = await applySpecialTransformations(filteredData, table);
-
   return filteredData;
 }
 
@@ -61,6 +58,17 @@ function applyDefaultValues(filteredData, table) {
       } else {
         row.TKM060 = "20250101";
       }
+    }
+
+    if (table === "item_connections") {
+      // Set default values for item_connections
+      row.client_id = 1;
+      row.is_supplier = 0;
+      row.is_active = 1;
+      row.creator_id = 0;
+      row.last_updater_id = 0;
+      row.created_at = null;
+      row.is_created_from_data_transfer = 0;
     }
   });
 
@@ -144,97 +152,3 @@ async function resolveForeignKeys(filteredData, table) {
 
   return filteredData;
 }
-
-/**
- * Apply special transformations (e.g., item_categories expansion)
- */
-async function applySpecialTransformations(filteredData, table) {
-  if (table === "item_categories") {
-    const finalRows = [];
-
-    for (const row of filteredData) {
-      const code = row.MSM030;
-      const name = row.MSM040;
-      const updatedAt = row.MSM110;
-      const taxCode = row.MSM060_1;
-
-      // Get alcohol tax category
-      const [taxRows] = await pool.query(
-        `SELECT id FROM alcohol_tax_categories WHERE code = ? LIMIT 1`,
-        [taxCode]
-      );
-      const alcohol_tax_category_id = taxRows.length ? taxRows[0].id : null;
-
-      const len = code?.length ?? 0;
-
-      // PASS 1 — depth = 1
-      let combination_code_1;
-      if (len === 5) {
-        combination_code_1 = "00" + code[0];
-      } else {
-        combination_code_1 = "000";
-      }
-
-      finalRows.push({
-        MSM030: combination_code_1,
-        MSM040: name,
-        MSM110: updatedAt,
-        depth: 1,
-        alcohol_tax_category_id,
-        is_active: 1,
-      });
-
-      // PASS 2 — depth = 2
-      let combination_code_2;
-      if (len === 5) {
-        combination_code_2 = "00" + code[0] + "0" + code[1] + code[2];
-      } else if (len === 4) {
-        combination_code_2 = "0000" + code[0] + code[1];
-      }
-
-      if (combination_code_2) {
-        finalRows.push({
-          MSM030: combination_code_2,
-          MSM040: name,
-          MSM110: updatedAt,
-          depth: 2,
-          alcohol_tax_category_id,
-          is_active: 1,
-        });
-      }
-
-      // PASS 3 — depth = 3
-      let combination_code_3;
-      if (len === 5) {
-        combination_code_3 =
-          "00" +
-          code[0] +
-          "0" +
-          code[1] +
-          code[2] +
-          "0" +
-          code[3] +
-          code[4];
-      } else if (len === 4) {
-        combination_code_3 =
-          "0000" + code[0] + code[1] + "0" + code[2] + code[3];
-      }
-
-      if (combination_code_3) {
-        finalRows.push({
-          MSM030: combination_code_3,
-          MSM040: name,
-          MSM110: updatedAt,
-          depth: 3,
-          alcohol_tax_category_id,
-          is_active: 1,
-        });
-      }
-    }
-
-    return finalRows;
-  }
-
-  return filteredData;
-}
-
