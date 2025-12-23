@@ -174,7 +174,7 @@ export async function processPartner(row, conn, ctx) {
       isSupplier ? 1 : 0
     ]);
     const partner_id = p.insertId;
-    let totalRowsInserted = 1; // partners table
+    let totalRowsInserted = 1; // Only count partners table rows (1 per partner)
 
     await q(`UPDATE partners SET bill_group_id=?, partner_price_group_id=? WHERE id=?`,
       [partner_id, partner_id, partner_id]);
@@ -188,7 +188,7 @@ export async function processPartner(row, conn, ctx) {
         [client_id, partner_id, partnerCategory]
       );
       const supplier_id = s.insertId;
-      totalRowsInserted += 1; // suppliers table
+      // Not counting suppliers table rows
       
       await q(`
         INSERT INTO supplier_details
@@ -209,7 +209,7 @@ export async function processPartner(row, conn, ctx) {
         taxFractionEnum[row.T0705],
         paymentMethodEnum[row.T2501]
       ]);
-      totalRowsInserted += 1; // supplier_details table
+      // Not counting supplier_details table rows
     } else {
       const partnerCategory = buyerEnum(t02Num);
       if (!partnerCategory) {
@@ -252,7 +252,7 @@ export async function processPartner(row, conn, ctx) {
         throw insertErr;
       }
       const buyer_id = b.insertId;
-      totalRowsInserted += 1; // buyers table
+      // Not counting buyers table rows
       
       await q(`
           INSERT INTO buyer_details
@@ -284,7 +284,7 @@ export async function processPartner(row, conn, ctx) {
           cashCollectionMethodEnum[row.T2509],
           row.T2513
       ]);
-      totalRowsInserted += 1; // buyer_details table
+      // Not counting buyer_details table rows
     }
 
     // Ledger Closing Pattern
@@ -326,7 +326,7 @@ export async function processPartner(row, conn, ctx) {
           closing_date, deposit_plan, deposit_date, updated_by, updated_at)
         VALUES ?
       `, [closingRows]);
-      totalRowsInserted += closingRows.length; // partner_closing_details table
+      // Not counting partner_closing_details table rows
     }
 
     // Partner Timetables (T2201 + T2203_x fields)
@@ -358,7 +358,7 @@ export async function processPartner(row, conn, ctx) {
           thursday, friday, saturday, updated_at)
         VALUES ?
       `, [weeks.map(w => [partner_id, w, client_id, ...days, row.T29 || default_date])]);
-      totalRowsInserted += weeks.length; // partner_timetables table
+      // Not counting partner_timetables table rows
     }
     ctx?.existingPartnerCodes?.add(code);
     return { success: true, rowsInserted: totalRowsInserted };
