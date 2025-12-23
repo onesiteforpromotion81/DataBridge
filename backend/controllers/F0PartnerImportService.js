@@ -403,6 +403,7 @@ export async function importOneItem(row) {
   await conn.beginTransaction();
 
   try {
+    let totalRowsInserted = 0; // Track total rows inserted across all tables
     const itemCode = row.S0101;
 
     // ----------------------------------------------------
