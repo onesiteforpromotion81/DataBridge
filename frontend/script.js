@@ -2,7 +2,7 @@ const API_BASE = "https://databridge.liquorhub-demo.cloud/api/csv";
 
 // Constants
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-const ALLOWED_FILE_TYPES = ['.csv'];
+const ALLOWED_FILE_TYPES = ['.csv', '.xlsx', '.xls'];
 
 // DOM Elements
 const fileInput = document.getElementById("file");
@@ -86,7 +86,7 @@ function validateFile(file) {
   const fileName = file.name.toLowerCase();
   const hasValidExtension = ALLOWED_FILE_TYPES.some(ext => fileName.endsWith(ext));
   if (!hasValidExtension) {
-    errors.push("CSV形式のファイルのみアップロードできます。");
+    errors.push("CSVまたはExcel形式のファイルのみアップロードできます。");
   }
   
   // Check file size
@@ -188,7 +188,8 @@ const FILE_ITEM_MATCH = {
   F0_TKM: ["個別単価"],
   F0_MSM: ["ユーザー", "金種", "伝票種別", "年商規模", "業務形態", "立地条件", "メーカー", "銘柄", "原料", "原産地", "製造区分", "配送コース", "倉庫", "貯蔵区分", "地区", "部門", "支店", "備考", "大中小分類"],
   F0_SHM: ["商品関連付"],
-  F0_SZM: ["ロケーション"]
+  F0_SZM: ["ロケーション"],
+  F9_CATE: ["大中小分類"] // Excel file for item categories
 };
 
 // Note: The API returns Japanese display names, not handler names
