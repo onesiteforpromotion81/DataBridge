@@ -259,8 +259,8 @@ export async function processPartner(row, conn, ctx) {
             (code, start_date, bill_collector_id, slip_type_id, buyer_id, branch_id, department_id, salesman_id, delivery_course_id,
             holiday_delivery_course_id, delivery_route, delivery_warehouse_id,
             holiday_delivery_warehouse_id, slip_fraction, partner_print_type,
-            display_tax_type, calculation_method, tax_fraction, payment_method, cash_collection_method, has_key)
-          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            display_tax_type, calculation_method, tax_fraction, payment_method, cash_collection_method, has_key, container_trade_type)
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
       `,[
           client_id,
           parseCsvDate(default_date),
@@ -282,7 +282,8 @@ export async function processPartner(row, conn, ctx) {
           taxFractionEnum[row.T0705],
           paymentMethodEnum[row.T2501],
           cashCollectionMethodEnum[row.T2509],
-          row.T2513
+          row.T2513,
+          "NORMAL"
       ]);
       // Not counting buyer_details table rows
     }
