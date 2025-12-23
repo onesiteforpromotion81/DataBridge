@@ -56,11 +56,12 @@ export async function importItemCategories(excelData) {
         }
         
         // Insert row with depth = 1
+        // Note: combination_code is a generated column, so we don't include it in INSERT
         await conn.query(
           `INSERT INTO item_categories 
-           (client_id, code, combination_code, name, depth, is_active, created_at, updated_at)
-           VALUES (?, ?, ?, ?, 1, 1, NOW(), NOW())`,
-          [client_id, code, code, name]
+           (client_id, code, name, depth, is_active, created_at, updated_at)
+           VALUES (?, ?, ?, 1, 1, NOW(), NOW())`,
+          [client_id, code, name]
         );
         
         inserted++;
@@ -115,11 +116,12 @@ export async function importItemCategories(excelData) {
         }
         
         // Insert row with depth = 2
+        // Note: combination_code is a generated column, so we don't include it in INSERT
         await conn.query(
           `INSERT INTO item_categories 
-           (client_id, code, combination_code, name, depth, alcohol_tax_category_id, is_active, created_at, updated_at)
-           VALUES (?, ?, ?, ?, 2, ?, 1, NOW(), NOW())`,
-          [client_id, code, code, name, alcohol_tax_category_id]
+           (client_id, code, name, depth, alcohol_tax_category_id, is_active, created_at, updated_at)
+           VALUES (?, ?, ?, 2, ?, 1, NOW(), NOW())`,
+          [client_id, code, name, alcohol_tax_category_id]
         );
         
         inserted++;
@@ -163,11 +165,12 @@ export async function importItemCategories(excelData) {
         }
         
         // Insert row with depth = 3
+        // Note: combination_code is a generated column, so we don't include it in INSERT
         await conn.query(
           `INSERT INTO item_categories 
-           (client_id, code, combination_code, name, depth, is_active, created_at, updated_at)
-           VALUES (?, ?, ?, ?, 3, 1, NOW(), NOW())`,
-          [client_id, code, code, name]
+           (client_id, code, name, depth, is_active, created_at, updated_at)
+           VALUES (?, ?, ?, 3, 1, NOW(), NOW())`,
+          [client_id, code, name]
         );
         
         inserted++;
