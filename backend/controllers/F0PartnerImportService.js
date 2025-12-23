@@ -472,7 +472,7 @@ export async function importOneItem(row) {
     ]);
 
     const item_id = item.insertId;
-    totalRowsInserted += 1; // items table
+    totalRowsInserted = 1; // Only count items table rows (1 per item)
 
     // ----------------------------------------------------
     // 4) INSERT item_search_information
@@ -492,7 +492,7 @@ export async function importOneItem(row) {
            VALUES (?, ?, ?, ?, 'PIECE', ?)`,
           [client_id, item_id, s.code, s.type, 0]
         );
-        totalRowsInserted += 1; // item_search_information table
+        // Not counting item_search_information rows
       }
     }
 
@@ -535,7 +535,7 @@ export async function importOneItem(row) {
 
     for (let i = 1; i <= 5; i++) {
       await insertPrice(i);
-      totalRowsInserted += 1; // item_prices table (5 rows per item)
+      // Not counting item_prices rows
     }
 
     // ----------------------------------------------------
