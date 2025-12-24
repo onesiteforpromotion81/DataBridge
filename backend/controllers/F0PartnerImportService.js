@@ -498,45 +498,166 @@ export async function importOneItem(row) {
     }
 
     // ----------------------------------------------------
-    // 5) INSERT item_prices (helper)
+    // 5) INSERT item_prices
     // ----------------------------------------------------
-    async function insertPrice(seq) {
-      const dKey       = `S1601_${seq}`;
-      const unitKey    = `S1603_${seq}`;
-      const caseKey    = `S1605_${seq}`;
-      const altUnitKey = `S1609_${seq}`;
-      const altCaseKey = `S1611_${seq}`;
+    // Helper function to parse date string (YYYYMMDD) to Date object
+    function parseDateString(dateStr) {
+      if (!dateStr || dateStr === "99999999" || dateStr === "20260101") {
+        return null; // Special values
+      }
+      if (/^\d{8}$/.test(dateStr)) {
+        const year = parseInt(dateStr.slice(0, 4));
+        const month = parseInt(dateStr.slice(4, 6)) - 1; // Month is 0-indexed
+        const day = parseInt(dateStr.slice(6, 8));
+        return new Date(year, month, day);
+      }
+      return null;
+    }
 
-      const isDefault = row[dKey] == "99999999";
+    // Helper function to format date back to YYYYMMDD string
+    function formatDateString(date) {
+      if (!date) return null;
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}${month}${day}`;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to start of day for comparison
+
+    // Collect all date values
+    const dateKeys = ["S1601_1", "S1601_2", "S1601_3", "S1601_4", "S1601_5"];
+    const dates = dateKeys.map(key => {
+      const val = row[key];
+      return {
+        key,
+        value: val,
+        isSpecial: val === "99999999" || val === "20260101",
+        date: parseDateString(val),
+        seq: parseInt(key.split('_')[1])
+      };
+    });
+
+    // Check if all dates are special (99999999 or 20260101)
+    const allSpecial = dates.every(d => d.isSpecial);
+
+    // Get dates that are not special
+    const nonSpecialDates = dates.filter(d => !d.isSpecial && d.date !== null);
+    
+    // Separate dates by comparison to today
+    const datesLessThanToday = nonSpecialDates.filter(d => d.date < today);
+    const datesGreaterThanToday = nonSpecialDates.filter(d => d.date > today);
+
+    // Determine start_date values
+    let startDate1 = null;
+    let startDate2 = null;
+
+    if (allSpecial) {
+      // Scenario 1: All dates are 99999999 or 20260101
+      startDate1 = "20260101";
+    } else if (datesGreaterThanToday.length === 0) {
+      // Scenario 2: All dates are special or less than today
+      const maxDate = datesLessThanToday.length > 0 
+        ? datesLessThanToday.reduce((max, d) => d.date > max ? d.date : max, datesLessThanToday[0].date)
+        : null;
+      startDate1 = maxDate ? formatDateString(maxDate) : "20260101";
+    } else {
+      // Scenario 3: At least one date is greater than today
+      const maxDateLessThanOrEqualToday = datesLessThanToday.length > 0
+        ? datesLessThanToday.reduce((max, d) => d.date > max ? d.date : max, datesLessThanToday[0].date)
+        : null;
+      startDate1 = maxDateLessThanOrEqualToday ? formatDateString(maxDateLessThanOrEqualToday) : "20260101";
+
+      const maxDateGreaterThanToday = datesGreaterThanToday.reduce((max, d) => d.date > max ? d.date : max, datesGreaterThanToday[0].date);
+      startDate2 = formatDateString(maxDateGreaterThanToday);
+    }
+
+    // Helper function to get price values for a row
+    // For first row: special dates use S1603_X/S1605_X, non-special dates use S1609_X/S1611_X
+    // For second row: special dates OR > today use S1603_X/S1605_X, <= today use S1609_X/S1611_X
+    function getPriceValues(isFirstRow) {
+      const prices = [];
+      for (let seq = 1; seq <= 5; seq++) {
+        const dateKey = `S1601_${seq}`;
+        const unitKey = `S1603_${seq}`;
+        const caseKey = `S1605_${seq}`;
+        const altUnitKey = `S1609_${seq}`;
+        const altCaseKey = `S1611_${seq}`;
+
+        const dateVal = row[dateKey];
+        const isSpecial = dateVal === "99999999" || dateVal === "20260101";
+        const date = parseDateString(dateVal);
+
+        let unitPrice, casePrice;
+
+        if (isFirstRow) {
+          // First row logic: special dates → S1603_X/S1605_X, non-special → S1609_X/S1611_X
+          if (isSpecial) {
+            unitPrice = row[unitKey];
+            casePrice = row[caseKey];
+          } else {
+            unitPrice = row[altUnitKey];
+            casePrice = row[altCaseKey];
+          }
+        } else {
+          // Second row logic: special OR > today → S1603_X/S1605_X, <= today → S1609_X/S1611_X
+          if (isSpecial || (date && date > today)) {
+            unitPrice = row[unitKey];
+            casePrice = row[caseKey];
+          } else {
+            unitPrice = row[altUnitKey];
+            casePrice = row[altCaseKey];
+          }
+        }
+
+        prices.push(unitPrice ?? null, casePrice ?? null);
+      }
+      return prices;
+    }
+
+    // Insert first row
+    const prices1 = getPriceValues(true);
+
+    await conn.query(`
+      INSERT INTO item_prices 
+      (client_id, creator_id, last_updater_id, item_id, start_date,
+       producer_unit_price, producer_case_price,
+       sale_unit_price, sale_case_price,
+       sub_unit_price, sub_case_price,
+       retail_unit_price, retail_case_price,
+       tax_exempt_unit_price, tax_exempt_case_price) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      client_id,
+      client_id,
+      client_id,
+      item_id,
+      startDate1,
+      ...prices1
+    ]);
+
+    // Insert second row if needed (Scenario 3)
+    if (startDate2) {
+      const prices2 = getPriceValues(false);
 
       await conn.query(`
         INSERT INTO item_prices 
-        (client_id, creator_id, last_updater_id, item_id, start_date, ${priceColumnNames(seq)}) 
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        (client_id, creator_id, last_updater_id, item_id, start_date,
+         producer_unit_price, producer_case_price,
+         sale_unit_price, sale_case_price,
+         sub_unit_price, sub_case_price,
+         retail_unit_price, retail_case_price,
+         tax_exempt_unit_price, tax_exempt_case_price) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         client_id,
         client_id,
         client_id,
         item_id,
-        isDefault ? "20250101" : row[dKey],
-        isDefault ? row[unitKey] : row[altUnitKey],
-        isDefault ? row[caseKey] : row[altCaseKey]
+        startDate2,
+        ...prices2
       ]);
-    }
-
-    function priceColumnNames(seq) {
-      return {
-        1: "producer_unit_price, producer_case_price",
-        2: "sale_unit_price, sale_case_price",
-        3: "sub_unit_price, sub_case_price",
-        4: "retail_unit_price, retail_case_price",
-        5: "tax_exempt_unit_price, tax_exempt_case_price"
-      }[seq];
-    }
-
-    for (let i = 1; i <= 5; i++) {
-      await insertPrice(i);
-      // Not counting item_prices rows
     }
 
     // ----------------------------------------------------
