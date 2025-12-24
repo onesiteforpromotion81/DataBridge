@@ -21,6 +21,16 @@ export async function importItemCategories(excelData) {
   await conn.beginTransaction();
   
   try {
+    // Look up user with code 0 for creator_id and last_updater_id
+    const [userRows] = await conn.query(
+      `SELECT id FROM users WHERE code = ? LIMIT 1`,
+      ["0"]
+    );
+    const userId = userRows.length ? userRows[0].id : null;
+    if (!userId) {
+      throw new Error("User with code '0' not found. Cannot set creator_id and last_updater_id.");
+    }
+
     // Build a map of alcohol_tax_category codes to IDs for quick lookup
     const [taxCategories] = await conn.query(
       `SELECT id, code FROM alcohol_tax_categories`
@@ -59,9 +69,9 @@ export async function importItemCategories(excelData) {
         // Note: combination_code is a generated column, so we don't include it in INSERT
         await conn.query(
           `INSERT INTO item_categories 
-           (client_id, code, name, depth, is_active, created_at, updated_at)
-           VALUES (?, ?, ?, 1, 1, NOW(), NOW())`,
-          [client_id, code, name]
+           (client_id, creator_id, last_updater_id, code, name, depth, is_active, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, 1, 1, NOW(), NOW())`,
+          [client_id, userId, userId, code, name]
         );
         
         inserted++;
@@ -119,9 +129,9 @@ export async function importItemCategories(excelData) {
         // Note: combination_code is a generated column, so we don't include it in INSERT
         await conn.query(
           `INSERT INTO item_categories 
-           (client_id, code, name, depth, alcohol_tax_category_id, is_active, created_at, updated_at)
-           VALUES (?, ?, ?, 2, ?, 1, NOW(), NOW())`,
-          [client_id, code, name, alcohol_tax_category_id]
+           (client_id, creator_id, last_updater_id, code, name, depth, alcohol_tax_category_id, is_active, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, 2, ?, 1, NOW(), NOW())`,
+          [client_id, userId, userId, code, name, alcohol_tax_category_id]
         );
         
         inserted++;
@@ -168,9 +178,9 @@ export async function importItemCategories(excelData) {
         // Note: combination_code is a generated column, so we don't include it in INSERT
         await conn.query(
           `INSERT INTO item_categories 
-           (client_id, code, name, depth, is_active, created_at, updated_at)
-           VALUES (?, ?, ?, 3, 1, NOW(), NOW())`,
-          [client_id, code, name]
+           (client_id, creator_id, last_updater_id, code, name, depth, is_active, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, 3, 1, NOW(), NOW())`,
+          [client_id, userId, userId, code, name]
         );
         
         inserted++;
