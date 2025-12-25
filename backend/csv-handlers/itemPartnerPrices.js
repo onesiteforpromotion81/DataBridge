@@ -1,7 +1,7 @@
 import BaseActiveHandler from "../common/baseActiveHandler_6_15.js";
 
 export default class ItemPartnerPrices extends BaseActiveHandler {
-  allowedColumns = ["TKM030", "TKM040", "TKM060", "TKM070", "TKM080", "TKM090", "TKM100", "TKM120"];
+  allowedColumns = ["TKM030", "TKM040", "TKM050", "TKM060", "TKM070", "TKM080", "TKM090", "TKM100", "TKM120"];
   columnMapping = {
     TKM030: "partner_code",
     TKM040: "item_code",
@@ -10,7 +10,9 @@ export default class ItemPartnerPrices extends BaseActiveHandler {
     TKM080: "case_price",
     TKM120: "updated_at",
     partner_id: "partner_id",
-    item_id: "item_id"
+    item_id: "item_id",
+    tax_exempt_unit_price: "tax_exempt_unit_price",
+    tax_exempt_case_price: "tax_exempt_case_price"
   }
 
   getTableName() {
