@@ -567,10 +567,10 @@ export async function importOneItem(row) {
       const maxDateLessThanOrEqualToday = datesLessThanToday.length > 0
         ? datesLessThanToday.reduce((max, d) => d.date > max ? d.date : max, datesLessThanToday[0].date)
         : null;
-      startDate1 = maxDateLessThanOrEqualToday ? formatDateString(maxDateLessThanOrEqualToday) : "20260101";
+      startDate2 = maxDateLessThanOrEqualToday ? formatDateString(maxDateLessThanOrEqualToday) : "20260101";
 
       const maxDateGreaterThanToday = datesGreaterThanToday.reduce((max, d) => d.date > max ? d.date : max, datesGreaterThanToday[0].date);
-      startDate2 = formatDateString(maxDateGreaterThanToday);
+      startDate1 = formatDateString(maxDateGreaterThanToday);
     }
 
     // Helper function to get price values for a row
