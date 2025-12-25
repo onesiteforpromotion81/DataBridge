@@ -567,16 +567,18 @@ export async function importOneItem(row) {
       const maxDateLessThanOrEqualToday = datesLessThanToday.length > 0
         ? datesLessThanToday.reduce((max, d) => d.date > max ? d.date : max, datesLessThanToday[0].date)
         : null;
-      startDate2 = maxDateLessThanOrEqualToday ? formatDateString(maxDateLessThanOrEqualToday) : "20260101";
-
       const maxDateGreaterThanToday = datesGreaterThanToday.reduce((max, d) => d.date > max ? d.date : max, datesGreaterThanToday[0].date);
+      
+      // startDate1 = future date (greater than today) - will be inserted FIRST
       startDate1 = formatDateString(maxDateGreaterThanToday);
+      // startDate2 = current/past date (less than or equal to today) - will be inserted SECOND
+      startDate2 = maxDateLessThanOrEqualToday ? formatDateString(maxDateLessThanOrEqualToday) : "20260101";
     }
 
     // Helper function to get price values for a row
-    // For first row: special dates use S1603_X/S1605_X, non-special dates use S1609_X/S1611_X
-    // For second row: special dates OR > today use S1603_X/S1605_X, <= today use S1609_X/S1611_X
-    function getPriceValues(isFirstRow) {
+    // For future date row (first): special dates OR > today use S1603_X/S1605_X, <= today use S1609_X/S1611_X
+    // For current/past date row (second): special dates → S1603_X/S1605_X, non-special → S1609_X/S1611_X
+    function getPriceValues(isFutureDateRow) {
       const prices = [];
       for (let seq = 1; seq <= 5; seq++) {
         const dateKey = `S1601_${seq}`;
@@ -591,9 +593,9 @@ export async function importOneItem(row) {
 
         let unitPrice, casePrice;
 
-        if (isFirstRow) {
-          // First row logic: special dates → S1603_X/S1605_X, non-special → S1609_X/S1611_X
-          if (isSpecial) {
+        if (isFutureDateRow) {
+          // Future date row (first): special OR > today → S1603_X/S1605_X, <= today → S1609_X/S1611_X
+          if (isSpecial || (date && date > today)) {
             unitPrice = row[unitKey];
             casePrice = row[caseKey];
           } else {
@@ -601,8 +603,8 @@ export async function importOneItem(row) {
             casePrice = row[altCaseKey];
           }
         } else {
-          // Second row logic: special OR > today → S1603_X/S1605_X, <= today → S1609_X/S1611_X
-          if (isSpecial || (date && date > today)) {
+          // Current/past date row (second): special dates → S1603_X/S1605_X, non-special → S1609_X/S1611_X
+          if (isSpecial) {
             unitPrice = row[unitKey];
             casePrice = row[caseKey];
           } else {
@@ -616,30 +618,32 @@ export async function importOneItem(row) {
       return prices;
     }
 
-    // Insert first row
-    const prices1 = getPriceValues(true);
+    // Insert first row: future date (greater than today)
+    if (startDate1) {
+      const prices1 = getPriceValues(true); // true = future date row
 
-    await conn.query(`
-      INSERT INTO item_prices 
-      (client_id, creator_id, last_updater_id, item_id, start_date,
-       producer_unit_price, producer_case_price,
-       sale_unit_price, sale_case_price,
-       sub_unit_price, sub_case_price,
-       retail_unit_price, retail_case_price,
-       tax_exempt_unit_price, tax_exempt_case_price) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      client_id,
-      client_id,
-      client_id,
-      item_id,
-      startDate1,
-      ...prices1
-    ]);
+      await conn.query(`
+        INSERT INTO item_prices 
+        (client_id, creator_id, last_updater_id, item_id, start_date,
+         producer_unit_price, producer_case_price,
+         sale_unit_price, sale_case_price,
+         sub_unit_price, sub_case_price,
+         retail_unit_price, retail_case_price,
+         tax_exempt_unit_price, tax_exempt_case_price) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        client_id,
+        client_id,
+        client_id,
+        item_id,
+        startDate1,
+        ...prices1
+      ]);
+    }
 
-    // Insert second row if needed (Scenario 3)
+    // Insert second row: current/past date (less than or equal to today) - only in Scenario 3
     if (startDate2) {
-      const prices2 = getPriceValues(false);
+      const prices2 = getPriceValues(false); // false = current/past date row
 
       await conn.query(`
         INSERT INTO item_prices 
