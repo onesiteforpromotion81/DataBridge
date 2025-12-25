@@ -1,6 +1,43 @@
 import pool from "../../db/connections.js";
 
 /**
+ * Safely truncate a table, handling foreign key constraints
+ * @param {string} table - Table name to truncate
+ * @param {Object} conn - Database connection (optional, uses pool if not provided)
+ */
+export async function truncateTable(table, conn = null) {
+  const query = conn ? conn.query.bind(conn) : pool.query.bind(pool);
+  
+  try {
+    // Try TRUNCATE first (fastest)
+    await query(`TRUNCATE TABLE \`${table}\``);
+    console.log(`[truncate] Successfully truncated table: ${table}`);
+  } catch (err) {
+    // If TRUNCATE fails (usually due to foreign key constraints), use DELETE
+    if (err.code === 'ER_TRUNCATE_ILLEGAL_FK' || err.message?.includes('foreign key')) {
+      console.log(`[truncate] TRUNCATE failed for ${table} due to foreign keys, using DELETE instead`);
+      try {
+        // Disable foreign key checks temporarily
+        await query(`SET FOREIGN_KEY_CHECKS = 0`);
+        await query(`TRUNCATE TABLE \`${table}\``);
+        await query(`SET FOREIGN_KEY_CHECKS = 1`);
+        console.log(`[truncate] Successfully truncated table (with FK disabled): ${table}`);
+      } catch (err2) {
+        // If TRUNCATE still fails, use DELETE FROM
+        console.log(`[truncate] TRUNCATE still failed, using DELETE FROM for ${table}`);
+        await query(`SET FOREIGN_KEY_CHECKS = 0`);
+        await query(`DELETE FROM \`${table}\``);
+        await query(`SET FOREIGN_KEY_CHECKS = 1`);
+        console.log(`[truncate] Successfully deleted all rows from table: ${table}`);
+      }
+    } else {
+      // Re-throw if it's a different error
+      throw err;
+    }
+  }
+}
+
+/**
  * Import generic table data using bulk insert
  * @param {Object} handler - CSV handler instance
  * @param {string} table - Table name
@@ -46,6 +83,15 @@ export async function importGenericTable(handler, table, filteredData) {
 
   // Create unique index if needed
   await ensureUniqueIndex(table, uniqueColumns);
+
+  // Truncate table before inserting
+  await truncateTable(table);
+  
+  // Truncate dependent tables if needed
+  if (table === "users") {
+    // Also truncate model_has_roles when importing users
+    await truncateTable("model_has_roles");
+  }
 
   // Bulk insert and get statistics
   const mainTableStats = await bulkInsert(table, dbColumns, csvColumns, filteredData);

@@ -1,4 +1,5 @@
 import pool from "../../db/connections.js";
+import { truncateTable } from "./genericImportService.js";
 
 /**
  * Import partners CSV data with concurrent or sequential processing
@@ -6,6 +7,26 @@ import pool from "../../db/connections.js";
  * @returns {Promise<Object>} - Result with inserted, failed counts
  */
 export async function importPartners(data) {
+  // Truncate all partner-related tables before importing
+  const partnerTables = [
+    "partners",
+    "suppliers",
+    "supplier_details",
+    "buyers",
+    "buyer_details",
+    "partner_closing_details",
+    "partner_timetables"
+  ];
+  
+  console.log("[partners] Truncating partner-related tables before import...");
+  for (const table of partnerTables) {
+    try {
+      await truncateTable(table);
+    } catch (err) {
+      console.error(`[partners] Failed to truncate ${table}:`, err.message);
+      // Continue with other tables even if one fails
+    }
+  }
   const {
     processPartner,
     buildPartnerImportContext,
