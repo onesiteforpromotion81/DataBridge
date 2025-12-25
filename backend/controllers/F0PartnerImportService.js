@@ -576,8 +576,8 @@ export async function importOneItem(row) {
     }
 
     // Helper function to get price values for a row
-    // For future date row (first): special dates OR > today use S1603_X/S1605_X, <= today use S1609_X/S1611_X
-    // For current/past date row (second): special dates → S1603_X/S1605_X, non-special → S1609_X/S1611_X
+    // For future date row (first): special dates → S1603_X/S1605_X, all others → S1609_X/S1611_X
+    // For current/past date row (second): special OR > today → S1603_X/S1605_X, <= today → S1609_X/S1611_X
     function getPriceValues(isFutureDateRow) {
       const prices = [];
       for (let seq = 1; seq <= 5; seq++) {
@@ -594,8 +594,8 @@ export async function importOneItem(row) {
         let unitPrice, casePrice;
 
         if (isFutureDateRow) {
-          // Future date row (first): special OR > today → S1603_X/S1605_X, <= today → S1609_X/S1611_X
-          if (isSpecial || (date && date > today)) {
+          // Future date row (first): special dates → S1603_X/S1605_X, all others (≤ today OR > today) → S1609_X/S1611_X
+          if (isSpecial) {
             unitPrice = row[unitKey];
             casePrice = row[caseKey];
           } else {
@@ -603,8 +603,8 @@ export async function importOneItem(row) {
             casePrice = row[altCaseKey];
           }
         } else {
-          // Current/past date row (second): special dates → S1603_X/S1605_X, non-special → S1609_X/S1611_X
-          if (isSpecial) {
+          // Current/past date row (second): special OR > today → S1603_X/S1605_X, ≤ today → S1609_X/S1611_X
+          if (isSpecial || (date && date > today)) {
             unitPrice = row[unitKey];
             casePrice = row[caseKey];
           } else {
