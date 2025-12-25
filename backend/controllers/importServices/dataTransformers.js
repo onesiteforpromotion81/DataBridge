@@ -127,6 +127,21 @@ async function resolveForeignKeys(filteredData, table) {
     filteredData = filteredData.filter(r => !r.__skip);
   }
 
+  // Resolve warehouse_id for locations
+  if (table === "locations") {
+    for (const row of filteredData) {
+      if (row.S0104) {
+        const [warehouseRows] = await pool.query(
+          `SELECT id FROM warehouses WHERE code = ? LIMIT 1`,
+          [row.S0104]
+        );
+        row.warehouse_id = warehouseRows.length ? warehouseRows[0].id : null;
+      } else {
+        row.warehouse_id = null;
+      }
+    }
+  }
+
   return filteredData;
 }
 
