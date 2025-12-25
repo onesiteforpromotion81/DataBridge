@@ -1,5 +1,6 @@
 import pool from "../../db/connections.js";
 import { client_id } from "../../common/constants_6_15.js";
+import { truncateTable } from "./genericImportService.js";
 
 /**
  * Import item_categories from Excel file (F9_CATE.xlsx) with 3 sheets
@@ -16,6 +17,15 @@ export async function importItemCategories(excelData) {
   let skipped = 0;
   let failed = 0;
   const errorDetails = [];
+  
+  // Truncate item_categories table before importing
+  console.log("[item_categories] Truncating item_categories table before import...");
+  try {
+    await truncateTable("item_categories");
+  } catch (err) {
+    console.error(`[item_categories] Failed to truncate item_categories:`, err.message);
+    throw err; // Re-throw since this is critical for item_categories
+  }
   
   const conn = await pool.getConnection();
   await conn.beginTransaction();

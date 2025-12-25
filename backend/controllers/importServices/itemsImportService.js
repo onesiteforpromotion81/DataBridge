@@ -1,9 +1,27 @@
+import { truncateTable } from "./genericImportService.js";
+
 /**
  * Import items CSV data with concurrent or sequential processing
  * @param {Array} data - CSV row data
  * @returns {Promise<Object>} - Result with inserted, skipped, failed counts
  */
 export async function importItems(data) {
+  // Truncate all item-related tables before importing
+  const itemTables = [
+    "items",
+    "item_search_information",
+    "item_prices"
+  ];
+  
+  console.log("[items] Truncating item-related tables before import...");
+  for (const table of itemTables) {
+    try {
+      await truncateTable(table);
+    } catch (err) {
+      console.error(`[items] Failed to truncate ${table}:`, err.message);
+      // Continue with other tables even if one fails
+    }
+  }
   const importOneItem = (await import("../F0PartnerImportService.js")).importOneItem;
   
   const startedAt = Date.now();
