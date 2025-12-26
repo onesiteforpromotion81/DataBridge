@@ -66,6 +66,11 @@ function applyDefaultValues(filteredData, table) {
       row.created_at = null;
       row.is_created_from_data_transfer = 0;
     }
+
+    if (table === "branches" || table === "warehouses") {
+      // Set default client_id for branches and warehouses
+      row.client_id = 1;
+    }
   });
 
 
