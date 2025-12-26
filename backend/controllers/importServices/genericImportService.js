@@ -84,13 +84,23 @@ export async function importGenericTable(handler, table, filteredData) {
   // Create unique index if needed
   await ensureUniqueIndex(table, uniqueColumns);
 
-  // Truncate table before inserting
-  await truncateTable(table);
-  
-  // Truncate dependent tables if needed
+  // Special handling for users table: delete all rows except where code = "0"
   if (table === "users") {
-    // Also truncate model_has_roles when importing users
-    await truncateTable("model_has_roles");
+    const query = pool.query.bind(pool);
+    try {
+      // Delete all users except the one with code = "0" (handles NULL and both string/numeric types)
+      await query(`DELETE FROM \`users\` WHERE code IS NULL OR code != ? OR code != ?`, ["0", 0]);
+      console.log(`[users] Deleted all users except where code = "0"`);
+      
+      // Also truncate model_has_roles when importing users
+      await truncateTable("model_has_roles");
+    } catch (err) {
+      console.error(`[users] Error deleting users:`, err);
+      throw err;
+    }
+  } else {
+    // Truncate table before inserting (for all other tables)
+    await truncateTable(table);
   }
 
   // Bulk insert and get statistics
