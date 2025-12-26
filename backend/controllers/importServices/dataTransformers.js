@@ -48,8 +48,7 @@ function applyDefaultValues(filteredData, table) {
 
     if (table === "users") {
       row.permission_ship_rare_item ??= 0;
-      row.default_branch_id ??= 90;
-      row.default_warehouse_id ??= 90;
+      // default_branch_id and default_warehouse_id will be resolved in resolveForeignKeys
       row.password ??= row.MSM030;
       row.email ??= `${row.MSM030}@test.com`;
     }
@@ -165,6 +164,29 @@ async function resolveForeignKeys(filteredData, table) {
       } else {
         row.branch_id = null;
       }
+    }
+  }
+
+  // Resolve default_branch_id and default_warehouse_id for users
+  if (table === "users") {
+    // Get branch_id where branches.code = "60"
+    const [branchRows] = await pool.query(
+      `SELECT id FROM branches WHERE code = ? LIMIT 1`,
+      ["60"]
+    );
+    const default_branch_id = branchRows.length ? branchRows[0].id : null;
+
+    // Get warehouse_id where warehouses.code = "60"
+    const [warehouseRows] = await pool.query(
+      `SELECT id FROM warehouses WHERE code = ? LIMIT 1`,
+      ["60"]
+    );
+    const default_warehouse_id = warehouseRows.length ? warehouseRows[0].id : null;
+
+    // Set default_branch_id and default_warehouse_id for all user rows
+    for (const row of filteredData) {
+      row.default_branch_id = default_branch_id;
+      row.default_warehouse_id = default_warehouse_id;
     }
   }
 
