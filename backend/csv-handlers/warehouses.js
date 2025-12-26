@@ -8,7 +8,8 @@ export default class Warehouses extends BaseActiveHandler {
     MSM040: "name",
     branch_id: "branch_id",
     MSM110: "updated_at",
-    is_active: "is_active"
+    is_active: "is_active",
+    client_id: "client_id"
   };
 
   getTableName() {
