@@ -68,11 +68,6 @@ function applyDefaultValues(filteredData, table) {
     }
   });
 
-  filteredData.forEach(row => {
-    if (table === "delivery_courses" && (!("warehouse_id" in row) || row["warehouse_id"] === "" || row["warehouse_id"] == null)) {
-      row["warehouse_id"] = 90;
-    }
-  });
 
   if (table === "areas") {
     filteredData.forEach(row => {
@@ -139,6 +134,17 @@ async function resolveForeignKeys(filteredData, table) {
       } else {
         row.warehouse_id = null;
       }
+    }
+  }
+
+  // Resolve warehouse_id for delivery_courses
+  if (table === "delivery_courses") {
+    for (const row of filteredData) {
+      const [warehouseRows] = await pool.query(
+        `SELECT id FROM warehouses WHERE code = ? LIMIT 1`,
+        ["60"]
+      );
+      row.warehouse_id = warehouseRows.length ? warehouseRows[0].id : null;
     }
   }
 
