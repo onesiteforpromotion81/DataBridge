@@ -148,6 +148,21 @@ async function resolveForeignKeys(filteredData, table) {
     }
   }
 
+  // Resolve branch_id for warehouses
+  if (table === "warehouses") {
+    for (const row of filteredData) {
+      if (row.MSM060_1) {
+        const [branchRows] = await pool.query(
+          `SELECT id FROM branches WHERE code = ? LIMIT 1`,
+          [row.MSM060_1]
+        );
+        row.branch_id = branchRows.length ? branchRows[0].id : null;
+      } else {
+        row.branch_id = null;
+      }
+    }
+  }
+
   return filteredData;
 }
 

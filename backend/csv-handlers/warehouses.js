@@ -6,7 +6,7 @@ export default class Warehouses extends BaseActiveHandler {
   columnMapping = {
     MSM030: "code",
     MSM040: "name",
-    MSM060_1: "branch_id",
+    branch_id: "branch_id",
     MSM110: "updated_at",
     is_active: "is_active"
   };
