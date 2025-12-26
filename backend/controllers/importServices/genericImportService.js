@@ -92,8 +92,9 @@ export async function importGenericTable(handler, table, filteredData) {
       await query(`DELETE FROM \`users\` WHERE code IS NULL OR code != ? OR code != ?`, ["0", 0]);
       console.log(`[users] Deleted all users except where code = "0"`);
       
-      // Also truncate model_has_roles when importing users
-      await truncateTable("model_has_roles");
+      // Delete model_has_roles rows except where model_id = 445
+      await query(`DELETE FROM \`model_has_roles\` WHERE model_id != ?`, [445]);
+      console.log(`[model_has_roles] Deleted all rows except where model_id = 445`);
     } catch (err) {
       console.error(`[users] Error deleting users:`, err);
       throw err;
