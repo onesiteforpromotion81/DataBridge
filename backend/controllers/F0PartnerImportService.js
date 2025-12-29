@@ -458,6 +458,7 @@ export async function importOneItem(row) {
       const thirdDigit = s1201.charAt(2) || "0";
       // Construct: 00 + 1st digit + 0 + 2nd digit + 3rd digit = 00x0xx
       middleCategoryValue = `00${firstDigit}0${secondDigit}${thirdDigit}`;
+      console.log("middleCategoryValue", middleCategoryValue);
       
       // Get alcohol_tax_category_id from alcohol_tax_categories where combination_code = middleCategoryValue
       const [alcoholTaxRows] = await conn.query(
@@ -465,6 +466,7 @@ export async function importOneItem(row) {
         [middleCategoryValue]
       );
       alcohol_tax_category_id = alcoholTaxRows.length ? alcoholTaxRows[0].id : null;
+      console.log("alcohol_tax_category_id", alcohol_tax_category_id);
     }
     
     // When S02 = 1, also check item_categories to determine item type
