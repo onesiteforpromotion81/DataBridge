@@ -441,25 +441,35 @@ export async function importOneItem(row) {
     const cat2_id = await idFrom(conn, "item_categories", cat2) ?? "000";
     const cat3_id = await idFrom(conn, "item_categories", cat3);
 
-    // Calculate middle category value when S02 = 1
+    // Calculate middle category value from S1201
     let middleCategoryValue = null;
     let alcohol_tax_category_id = null;
     let itemType = itemTypeEnum[row.S02];
     
+    // Convert S1201 to 6-digit middle category value
+    // S1201 is always 5 digits. Ignore 4th and 5th digits, add two zeros in front of 1st digit,
+    // and one zero in front of 2nd digit. Result: 00x0xx (6 digits)
+    const s1201 = String(row.S1201 || "").padStart(5, "0");
+    if (s1201.length >= 5) {
+      // S1201 is 5 digits: positions 0,1,2,3,4
+      // Ignore 4th and 5th digits (indices 3 and 4)
+      const firstDigit = s1201.charAt(0) || "0";
+      const secondDigit = s1201.charAt(1) || "0";
+      const thirdDigit = s1201.charAt(2) || "0";
+      // Construct: 00 + 1st digit + 0 + 2nd digit + 3rd digit = 00x0xx
+      middleCategoryValue = `00${firstDigit}0${secondDigit}${thirdDigit}`;
+      
+      // Get alcohol_tax_category_id from alcohol_tax_categories where combination_code = middleCategoryValue
+      const [alcoholTaxRows] = await conn.query(
+        `SELECT id FROM alcohol_tax_categories WHERE combination_code = ? LIMIT 1`,
+        [middleCategoryValue]
+      );
+      alcohol_tax_category_id = alcoholTaxRows.length ? alcoholTaxRows[0].id : null;
+    }
+    
+    // When S02 = 1, also check item_categories to determine item type
     if (row.S02 == "1" || row.S02 == 1) {
-      // Convert S1201 to 6-digit middle category value
-      // Remove 4th and 5th digits, add two zeros in front of 1st digit, and 1 zero in front of 2nd digit
-      const s1201 = String(row.S1201 || "").padStart(6, "0");
-      if (s1201.length >= 6) {
-        // Remove 4th and 5th digits (indices 3 and 4 in 0-based, 1-indexed positions 4 and 5)
-        const digits = s1201.split("");
-        const firstDigit = digits[0] || "0";
-        const secondDigit = digits[1] || "0";
-        const thirdDigit = digits[2] || "0";
-        const sixthDigit = digits[5] || "0";
-        // Construct: 00 + 1st digit + 0 + 2nd digit + 3rd digit + 6th digit
-        middleCategoryValue = `00${firstDigit}0${secondDigit}${thirdDigit}${sixthDigit}`.slice(0, 6);
-        
+      if (middleCategoryValue) {
         // Get alcohol_tax_category_id from item_categories where combination_code = middleCategoryValue
         const [categoryRows] = await conn.query(
           `SELECT alcohol_tax_category_id FROM item_categories WHERE combination_code = ? LIMIT 1`,
@@ -468,13 +478,6 @@ export async function importOneItem(row) {
         const categoryAlcoholTaxId = categoryRows.length && categoryRows[0].alcohol_tax_category_id 
           ? categoryRows[0].alcohol_tax_category_id 
           : null;
-        
-        // Get alcohol_tax_category_id from alcohol_tax_categories where combination_code = middleCategoryValue
-        const [alcoholTaxRows] = await conn.query(
-          `SELECT id FROM alcohol_tax_categories WHERE code = ? LIMIT 1`,
-          [middleCategoryValue]
-        );
-        alcohol_tax_category_id = alcoholTaxRows.length ? alcoholTaxRows[0].id : categoryAlcoholTaxId;
         
         // Set items.type based on alcohol_tax_category_id from item_categories
         // "酒以外" maps to "NOT_ALCOHOL", "酒類" maps to "ALCOHOL"
