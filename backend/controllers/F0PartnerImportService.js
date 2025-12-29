@@ -427,8 +427,9 @@ export async function importOneItem(row) {
     // ----------------------------------------------------
     const { cat1, cat2, cat3 } = categoryLevels(row.S1201);
 
-    const manufacturer_id = await idOrDefault(conn, "manufacturers", row.S1205);
-    const brand_id        = await idFrom(conn, "brands", row.S1205);
+    // Use S1203 for manufacturer_id and brand_id (not S1205)
+    const manufacturer_id = await idOrDefault(conn, "manufacturers", row.S1203);
+    const brand_id        = await idFrom(conn, "brands", row.S1203);
 
     const container_type_id   = await idFrom(conn, "container_types", row.S1207) ?? 1;
     const place_of_origin_id  = await idFrom(conn, "place_of_origins", row.S1701);
@@ -440,9 +441,82 @@ export async function importOneItem(row) {
     const cat2_id = await idFrom(conn, "item_categories", cat2) ?? "000";
     const cat3_id = await idFrom(conn, "item_categories", cat3);
 
+    // Calculate middle category value when S02 = 1
+    let middleCategoryValue = null;
+    let alcohol_tax_category_id = null;
+    let itemType = itemTypeEnum[row.S02];
+    
+    if (row.S02 == "1" || row.S02 == 1) {
+      // Convert S1201 to 6-digit middle category value
+      // Remove 4th and 5th digits, add two zeros in front of 1st digit, and 1 zero in front of 2nd digit
+      const s1201 = String(row.S1201 || "").padStart(6, "0");
+      if (s1201.length >= 6) {
+        // Remove 4th and 5th digits (indices 3 and 4 in 0-based, 1-indexed positions 4 and 5)
+        const digits = s1201.split("");
+        const firstDigit = digits[0] || "0";
+        const secondDigit = digits[1] || "0";
+        const thirdDigit = digits[2] || "0";
+        const sixthDigit = digits[5] || "0";
+        // Construct: 00 + 1st digit + 0 + 2nd digit + 3rd digit + 6th digit
+        middleCategoryValue = `00${firstDigit}0${secondDigit}${thirdDigit}${sixthDigit}`.slice(0, 6);
+        
+        // Get alcohol_tax_category_id from item_categories where combination_code = middleCategoryValue
+        const [categoryRows] = await conn.query(
+          `SELECT alcohol_tax_category_id FROM item_categories WHERE combination_code = ? LIMIT 1`,
+          [middleCategoryValue]
+        );
+        const categoryAlcoholTaxId = categoryRows.length && categoryRows[0].alcohol_tax_category_id 
+          ? categoryRows[0].alcohol_tax_category_id 
+          : null;
+        
+        // Get alcohol_tax_category_id from alcohol_tax_categories where combination_code = middleCategoryValue
+        const [alcoholTaxRows] = await conn.query(
+          `SELECT id FROM alcohol_tax_categories WHERE combination_code = ? LIMIT 1`,
+          [middleCategoryValue]
+        );
+        alcohol_tax_category_id = alcoholTaxRows.length ? alcoholTaxRows[0].id : categoryAlcoholTaxId;
+        
+        // Set items.type based on alcohol_tax_category_id from item_categories
+        if (categoryAlcoholTaxId == null) {
+          itemType = "酒以外";
+        } else {
+          itemType = "酒類";
+        }
+      }
+    }
+
+    // Get slip_classification_id and ledger_classification_id from 1st digit of S1201
+    let slip_classification_id = null;
+    let ledger_classification_id = null;
+    if (row.S1201) {
+      const firstDigit = String(row.S1201).charAt(0);
+      if (firstDigit) {
+        const [slipRows] = await conn.query(
+          `SELECT id FROM slip_types WHERE code = ? LIMIT 1`,
+          [firstDigit]
+        );
+        slip_classification_id = slipRows.length ? slipRows[0].id : null;
+        
+        const [ledgerRows] = await conn.query(
+          `SELECT id FROM ledger_classifications WHERE code = ? LIMIT 1`,
+          [firstDigit]
+        );
+        ledger_classification_id = ledgerRows.length ? ledgerRows[0].id : null;
+      }
+    }
+
     // ----------------------------------------------------
     // 3) INSERT ITEMS
     // ----------------------------------------------------
+    // Handle nickname fallback: if S0313 is null or "", use S0101
+    const nickname = (row.S0313 && String(row.S0313).trim() !== "") ? row.S0313 : row.S0101;
+    
+    // Handle name_main fallback: if S05 is null or "", use S06
+    const name_main = (row.S05 && String(row.S05).trim() !== "") ? row.S05 : row.S06;
+    
+    // Handle packaging: concatenate S09 + "X" + S11
+    const packaging = `${row.S09 || ""}X${row.S11 || ""}`;
+
     const [item] = await conn.query(`
       INSERT INTO items (
         client_id, creator_id, last_updater_id,
@@ -454,11 +528,12 @@ export async function importOneItem(row) {
         alcohol_content,sake_meter_value,acidity_level,measurement_case_width,
         measurement_case_depth,measurement_case_height,measurement_case_weight,
         measurement_unit_width,measurement_unit_depth,measurement_unit_height,
-        measurement_unit_weight,start_of_sale_date,end_of_sale_date,updated_at,packaging
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        measurement_unit_weight,start_of_sale_date,end_of_sale_date,updated_at,packaging,
+        alcohol_tax_category_id,slip_classification_id,ledger_classification_id
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     `, [
       client_id, client_id, client_id,
-      row.S0101, itemTypeEnum[row.S02], row.S0313, row.S05, row.S06, row.S07, row.S08,
+      row.S0101, itemType, nickname, name_main, row.S06, row.S07, row.S08,
       row.S09, row.S11, cat1_id, cat2_id, cat3_id,
       manufacturer_id, brand_id, row.S1213, row.S1215,
       container_type_id,row.S1223,row.S1225,unitPriceTypeEnum[row.S1226],
@@ -469,7 +544,10 @@ export async function importOneItem(row) {
       parseCsvDate(row.S20),
       parseCsvDate(row.S21),
       parseCsvDate(row.S22),
-      ''  // packaging - default to empty string
+      packaging,
+      alcohol_tax_category_id,
+      slip_classification_id,
+      ledger_classification_id
     ]);
 
     const item_id = item.insertId;
@@ -481,9 +559,9 @@ export async function importOneItem(row) {
     const total_value = row.S0307 + row.S0309;
 
     const searchEntries = [
-      { code: total_value, type: "JAN" },
-      { code: row.S0311, type: "SDP" },
-      { code: row.S0315, type: "OTHER" }
+      { code: total_value, type: "JAN", priority: 1 },
+      { code: row.S0311, type: "SDP", priority: 2 },
+      { code: row.S0315, type: "OTHER", priority: 3 }
     ];
 
     for (const s of searchEntries) {
@@ -491,7 +569,7 @@ export async function importOneItem(row) {
         await conn.query(
           `INSERT INTO item_search_information (client_id, item_id, search_string, code_type, quantity_type, priority) 
            VALUES (?, ?, ?, ?, 'PIECE', ?)`,
-          [client_id, item_id, s.code, s.type, 0]
+          [client_id, item_id, s.code, s.type, s.priority]
         );
         // Not counting item_search_information rows
       }
@@ -618,6 +696,28 @@ export async function importOneItem(row) {
       return prices;
     }
 
+    // Determine item_prices.type based on S1750 and S1209/S1751
+    let priceType = null;
+    if (row.S1750 == "99999999" || row.S1750 == 99999999) {
+      // If S1750 is 99999999, use S1209
+      if (row.S1209 == "2" || row.S1209 == 2) {
+        priceType = "外税";
+      } else if (row.S1209 == "4" || row.S1209 == 4) {
+        priceType = "軽減外税";
+      } else {
+        priceType = "非課税";
+      }
+    } else {
+      // If S1750 is not 99999999, use S1751
+      if (row.S1751 == "2" || row.S1751 == 2) {
+        priceType = "外税";
+      } else if (row.S1751 == "4" || row.S1751 == 4) {
+        priceType = "軽減外税";
+      } else {
+        priceType = "非課税";
+      }
+    }
+
     // Insert first row: future date (greater than today)
     if (startDate1) {
       const prices1 = getPriceValues(true); // true = future date row
@@ -629,15 +729,16 @@ export async function importOneItem(row) {
          sale_unit_price, sale_case_price,
          sub_unit_price, sub_case_price,
          retail_unit_price, retail_case_price,
-         tax_exempt_unit_price, tax_exempt_case_price) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         tax_exempt_unit_price, tax_exempt_case_price, type) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         client_id,
         client_id,
         client_id,
         item_id,
         startDate1,
-        ...prices1
+        ...prices1,
+        priceType
       ]);
     }
 
@@ -652,15 +753,16 @@ export async function importOneItem(row) {
          sale_unit_price, sale_case_price,
          sub_unit_price, sub_case_price,
          retail_unit_price, retail_case_price,
-         tax_exempt_unit_price, tax_exempt_case_price) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         tax_exempt_unit_price, tax_exempt_case_price, type) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         client_id,
         client_id,
         client_id,
         item_id,
         startDate2,
-        ...prices2
+        ...prices2,
+        priceType
       ]);
     }
 
