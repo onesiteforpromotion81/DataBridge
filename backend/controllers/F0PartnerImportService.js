@@ -477,10 +477,11 @@ export async function importOneItem(row) {
         alcohol_tax_category_id = alcoholTaxRows.length ? alcoholTaxRows[0].id : categoryAlcoholTaxId;
         
         // Set items.type based on alcohol_tax_category_id from item_categories
+        // "酒以外" maps to "NOT_ALCOHOL", "酒類" maps to "ALCOHOL"
         if (categoryAlcoholTaxId == null) {
-          itemType = "酒以外";
+          itemType = "NOT_ALCOHOL";
         } else {
-          itemType = "酒類";
+          itemType = "ALCOHOL";
         }
       }
     }
@@ -701,20 +702,20 @@ export async function importOneItem(row) {
     if (row.S1750 == "99999999" || row.S1750 == 99999999) {
       // If S1750 is 99999999, use S1209
       if (row.S1209 == "2" || row.S1209 == 2) {
-        priceType = "外税";
+        priceType = "POST_TAX_PERCENT_10";
       } else if (row.S1209 == "4" || row.S1209 == 4) {
-        priceType = "軽減外税";
+        priceType = "POST_TAX_PERCENT_8";
       } else {
-        priceType = "非課税";
+        priceType = "EXEMPT";
       }
     } else {
       // If S1750 is not 99999999, use S1751
       if (row.S1751 == "2" || row.S1751 == 2) {
-        priceType = "外税";
+        priceType = "POST_TAX_PERCENT_10";
       } else if (row.S1751 == "4" || row.S1751 == 4) {
-        priceType = "軽減外税";
+        priceType = "POST_TAX_PERCENT_8";
       } else {
-        priceType = "非課税";
+        priceType = "EXEMPT";
       }
     }
 
