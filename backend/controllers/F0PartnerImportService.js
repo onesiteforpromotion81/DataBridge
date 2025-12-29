@@ -465,6 +465,7 @@ export async function importOneItem(row) {
         `SELECT alcohol_tax_category_id FROM item_categories WHERE combination_code = ? LIMIT 1`,
         [middleCategoryValue]
       );
+      console.log("alcoholTaxRows: ", alcoholTaxRows);
       alcohol_tax_category_id = alcoholTaxRows.length ? alcoholTaxRows[0].id : null;
       console.log("alcohol_tax_category_id", alcohol_tax_category_id);
     }
