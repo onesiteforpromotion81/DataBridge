@@ -461,7 +461,7 @@ export async function importOneItem(row) {
       
       // Get alcohol_tax_category_id from alcohol_tax_categories where combination_code = middleCategoryValue
       const [alcoholTaxRows] = await conn.query(
-        `SELECT id FROM alcohol_tax_categories WHERE combination_code = ? LIMIT 1`,
+        `SELECT alcohol_tax_category_id FROM item_categories WHERE combination_code = ? LIMIT 1`,
         [middleCategoryValue]
       );
       alcohol_tax_category_id = alcoholTaxRows.length ? alcoholTaxRows[0].id : null;
