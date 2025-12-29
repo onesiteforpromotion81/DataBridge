@@ -460,14 +460,15 @@ export async function importOneItem(row) {
       middleCategoryValue = `00${firstDigit}0${secondDigit}${thirdDigit}`;
       console.log("middleCategoryValue", middleCategoryValue);
       
-      // Get alcohol_tax_category_id from alcohol_tax_categories where combination_code = middleCategoryValue
-      const [alcoholTaxRows] = await conn.query(
-        `SELECT alcohol_tax_category_id FROM item_categories WHERE combination_code = ? LIMIT 1`,
-        [middleCategoryValue]
-      );
-      console.log("alcoholTaxRows: ", alcoholTaxRows);
-      alcohol_tax_category_id = alcoholTaxRows.length ? alcoholTaxRows[0].id : null;
-      console.log("alcohol_tax_category_id", alcohol_tax_category_id);
+        // Get alcohol_tax_category_id from item_categories where combination_code = middleCategoryValue
+        const [alcoholTaxRows] = await conn.query(
+          `SELECT alcohol_tax_category_id FROM item_categories WHERE combination_code = ? LIMIT 1`,
+          [middleCategoryValue]
+        );
+        alcohol_tax_category_id = alcoholTaxRows.length && alcoholTaxRows[0].alcohol_tax_category_id 
+          ? alcoholTaxRows[0].alcohol_tax_category_id 
+          : null;
+        console.log("alcohol_tax_category_id", alcohol_tax_category_id);
     }
     
     // When S02 = 1, also check item_categories to determine item type
