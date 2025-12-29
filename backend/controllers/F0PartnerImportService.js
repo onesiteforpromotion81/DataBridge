@@ -492,17 +492,19 @@ export async function importOneItem(row) {
     if (row.S1201) {
       const firstDigit = String(row.S1201).charAt(0);
       if (firstDigit) {
-        const [slipRows] = await conn.query(
-          `SELECT id FROM slip_types WHERE code = ? LIMIT 1`,
-          [firstDigit]
-        );
-        slip_classification_id = slipRows.length ? slipRows[0].id : null;
+        // const [slipRows] = await conn.query(
+        //   `SELECT id FROM slip_types WHERE code = ? LIMIT 1`,
+        //   [firstDigit]
+        // );
+        // slip_classification_id = slipRows.length ? slipRows[0].id : null;
+        slip_classification_id = firstDigit;
         
-        const [ledgerRows] = await conn.query(
-          `SELECT id FROM ledger_classifications WHERE code = ? LIMIT 1`,
-          [firstDigit]
-        );
-        ledger_classification_id = ledgerRows.length ? ledgerRows[0].id : null;
+        // const [ledgerRows] = await conn.query(
+        //   `SELECT id FROM ledger_classifications WHERE code = ? LIMIT 1`,
+        //   [firstDigit]
+        // );
+        // ledger_classification_id = ledgerRows.length ? ledgerRows[0].id : null;
+        ledger_classification_id = firstDigit;
       }
     }
 
