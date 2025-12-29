@@ -49,8 +49,8 @@ function applyDefaultValues(filteredData, table) {
     if (table === "users") {
       row.permission_ship_rare_item ??= 0;
       // default_branch_id and default_warehouse_id will be resolved in resolveForeignKeys
-      row.password ??= row.MSM030;
-      row.email ??= `${row.MSM030}@test.com`;
+      row.password ??= String(row.MSM030).padStart(8, "0");
+      row.email ??= `${row.MSM030}@inose.com`;
     }
 
     // item_partner_prices logic is now handled in applySpecialTransformations
