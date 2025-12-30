@@ -176,8 +176,28 @@ export async function processPartner(row, conn, ctx) {
     const partner_id = p.insertId;
     let totalRowsInserted = 1; // Only count partners table rows (1 per partner)
 
+    // Get bill_group_id from partners where code = T0505
+    let bill_group_id = partner_id; // Default to current partner_id
+    if (row.T0505) {
+      const [billGroupRows] = await q(
+        `SELECT id FROM partners WHERE code = ? LIMIT 1`,
+        [row.T0505]
+      );
+      bill_group_id = billGroupRows.length ? billGroupRows[0].id : partner_id;
+    }
+
+    // Get partner_price_group_id from partners where code = T0509
+    let partner_price_group_id = partner_id; // Default to current partner_id
+    if (row.T0509) {
+      const [priceGroupRows] = await q(
+        `SELECT id FROM partners WHERE code = ? LIMIT 1`,
+        [row.T0509]
+      );
+      partner_price_group_id = priceGroupRows.length ? priceGroupRows[0].id : partner_id;
+    }
+
     await q(`UPDATE partners SET bill_group_id=?, partner_price_group_id=? WHERE id=?`,
-      [partner_id, partner_id, partner_id]);
+      [bill_group_id, partner_price_group_id, partner_id]);
 
     if(isSupplier){
       const partnerCategory = supplierEnum(t02Num);
@@ -193,8 +213,8 @@ export async function processPartner(row, conn, ctx) {
       await q(`
         INSERT INTO supplier_details
           (code, start_date, supplier_id, branch_id, department_id, salesman_id, slip_fraction, partner_print_type,
-            display_tax_type, calculation_method, tax_fraction, payment_method)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+            display_tax_type, calculation_method, tax_fraction, payment_method, container_deposit_tax_type, purchase_tax_rebate)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
       `,[
         client_id,
         parseCsvDate(default_date),
@@ -207,7 +227,9 @@ export async function processPartner(row, conn, ctx) {
         displayTaxEnum[row.T0701],
         calcMethodEnum[row.T0703],
         taxFractionEnum[row.T0705],
-        paymentMethodEnum[row.T2501]
+        (row.T02 == "11" || row.T02 == 11 || row.T02 == "21" || row.T02 == 21) ? "CASH" : "DEPOSIT",
+        "TAXATION",
+        "POST_TAX"
       ]);
       // Not counting supplier_details table rows
     } else {
@@ -259,13 +281,13 @@ export async function processPartner(row, conn, ctx) {
             (code, start_date, bill_collector_id, slip_type_id, buyer_id, branch_id, department_id, salesman_id, delivery_course_id,
             holiday_delivery_course_id, delivery_route, delivery_warehouse_id,
             holiday_delivery_warehouse_id, slip_fraction, partner_print_type,
-            display_tax_type, calculation_method, tax_fraction, payment_method, cash_collection_method, has_key, container_trade_type)
-          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            display_tax_type, calculation_method, tax_fraction, payment_method, cash_collection_method, has_key, container_trade_type, container_deposit_tax_type, sale_tax_rebate)
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
       `,[
           client_id,
           parseCsvDate(default_date),
           cachedId(ctx, "users", row.T0405),
-          client_id,
+          0,
           buyer_id,
           cachedIdOrDefault(ctx, "branches", row.T0401, 1),
           cachedId(ctx, "departments", (row.T0403 == "0" || row.T0403 == 0) ? "6000" : row.T0403),
@@ -280,10 +302,12 @@ export async function processPartner(row, conn, ctx) {
           displayTaxEnum[row.T0701],
           calcMethodEnum[row.T0703],
           taxFractionEnum[row.T0705],
-          paymentMethodEnum[row.T2501],
-          cashCollectionMethodEnum[row.T2509],
+          (row.T02 == "11" || row.T02 == 11 || row.T02 == "21" || row.T02 == 21) ? "CASH" : "DEPOSIT",
+          "DEPOSIT",
           row.T2513,
-          "NORMAL"
+          "NORMAL",
+          "TAXATION",
+          "POST_TAX"
       ]);
       // Not counting buyer_details table rows
     }
