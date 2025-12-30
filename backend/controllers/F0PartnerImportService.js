@@ -317,9 +317,6 @@ export async function processPartner(row, conn, ctx) {
     const closingRows = [];
     const closingDateSuffixes = [7, 9, 11, 13, 15, 17];
 
-    // Deposit plan enum conversion from T1821
-    const deposit_plan = depositPlanEnum[row.T1821] ?? null;
-
     for (let g = 1; g <= 9; g++) {
       const code = row[`T1803_${g}`];
 
@@ -331,13 +328,19 @@ export async function processPartner(row, conn, ctx) {
 
       // Loop through all closing date fields
       for (const suffix of closingDateSuffixes) {
-        const closingDate = row[`T18${suffix.toString().padStart(2, "0")}_${g}`];
+        let closingDate = row[`T18${suffix.toString().padStart(2, "0")}_${g}`];
 
         // Insert only if closing date exists and is non-zero
         if (closingDate && Number(closingDate) !== 0) {
+          // If closingDate is 99, replace with 31
+          if (closingDate == "99" || closingDate == 99) {
+            closingDate = "31";
+          }
+          
+          // deposit_plan is "IN_ONE_MONTH" and deposit_date is same as closingDate
           closingRows.push([
             partner_id, client_id, ledgerClassificationId,
-            closingDate, deposit_plan, Number(default_date), client_id,
+            closingDate, "IN_ONE_MONTH", closingDate, client_id,
             row.T29 || default_date  // updated_at from CSV, or default_date if not provided
           ]);
         }
