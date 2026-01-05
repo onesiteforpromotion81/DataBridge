@@ -155,16 +155,18 @@ export async function processPartner(row, conn, ctx) {
     const t02Num = Number(row.T02) || 0;
     const isSupplier = t02Num <= 9;
     
-    // Handle postal_code: if T15 is zero, set to null; if T1501 is " ", replace with "0000"
+    // Handle postal_code: if T15 is zero, set to null; if T1501 is empty/whitespace, replace with "0000"
     let postal_code = null;
     if (row.T15 != "0" && row.T15 != 0) {
       let t1501 = row.T1501;
-      if (t1501 === null || t1501 === "") {
+      // Check if T1501 is null, undefined, empty string, or whitespace-only
+      if (t1501 == null || t1501 === undefined || String(t1501).trim() === "") {
         t1501 = "0000";
+      } else {
+        t1501 = String(t1501).trim();
       }
       postal_code = `${row.T15}-${t1501}`;
     }
-    console.log("postal_code: ", postal_code);
     
     const [p] = await q(`
       INSERT INTO partners
