@@ -628,10 +628,16 @@ export async function importOneItem(row) {
 
     for (const s of searchEntries) {
       if (s.code) {
+        // If code_type is SDP, pad search_string to length 7 with zeros
+        let search_string = String(s.code);
+        if (s.type === "SDP" && search_string.length < 7) {
+          search_string = search_string.padStart(7, "0");
+        }
+        
         await conn.query(
           `INSERT INTO item_search_information (client_id, item_id, search_string, code_type, quantity_type, priority) 
            VALUES (?, ?, ?, ?, 'PIECE', ?)`,
-          [client_id, item_id, s.code, s.type, s.priority]
+          [client_id, item_id, search_string, s.type, s.priority]
         );
         // Not counting item_search_information rows
       }
