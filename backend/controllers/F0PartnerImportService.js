@@ -159,11 +159,12 @@ export async function processPartner(row, conn, ctx) {
     let postal_code = null;
     if (row.T15 != "0" && row.T15 != 0) {
       let t1501 = row.T1501;
-      if (t1501 === null) {
+      if (t1501 === null || t1501 === "") {
         t1501 = "0000";
       }
       postal_code = `${row.T15}-${t1501}`;
     }
+    console.log("postal_code: ", postal_code);
     
     const [p] = await q(`
       INSERT INTO partners
