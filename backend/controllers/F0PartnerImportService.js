@@ -155,6 +155,16 @@ export async function processPartner(row, conn, ctx) {
     const t02Num = Number(row.T02) || 0;
     const isSupplier = t02Num <= 9;
     
+    // Handle postal_code: if T15 is zero, set to null; if T1501 is " ", replace with "0000"
+    let postal_code = null;
+    if (row.T15 != "0" && row.T15 != 0) {
+      let t1501 = row.T1501;
+      if (t1501 === " ") {
+        t1501 = "0000";
+      }
+      postal_code = `${row.T15}-${t1501}`;
+    }
+    
     const [p] = await q(`
       INSERT INTO partners
         (client_id, creator_id, last_updater_id, code,
@@ -166,7 +176,7 @@ export async function processPartner(row, conn, ctx) {
       client_id, client_id, client_id,
       code, row.T0510, row.T05103,
       row.T10, row.T11, row.T13, row.T14,
-      `${row.T15}-${row.T1501}`,
+      postal_code,
       row.T16, row.T17, row.T23,
       parseCsvDate(row.T27),
       parseCsvDate(row.T28),
@@ -245,17 +255,26 @@ export async function processPartner(row, conn, ctx) {
       // Try to insert, but catch and provide helpful error if partner_category is rejected
       let b;
       try {
+        // If T0511 is zero, don't insert company_id (set to null)
+        const company_id = (row.T0511 == "0" || row.T0511 == 0) ? null : cachedId(ctx, "companies", row.T0511);
+        // If T0601 is zero, don't insert business_type_id (set to null)
+        const business_type_id = (row.T0601 == "0" || row.T0601 == 0) ? null : cachedId(ctx, "business_types", row.T0601);
+        // If T0603 is zero, don't insert location_condition_id (set to null)
+        const location_condition_id = (row.T0603 == "0" || row.T0603 == 0) ? null : cachedId(ctx, "location_conditions", row.T0603);
+        // If T0605 is zero, don't insert sale_size_id (set to null)
+        const sale_size_id = (row.T0605 == "0" || row.T0605 == 0) ? null : cachedId(ctx, "sale_sizes", row.T0605);
+        
         [b] = await q(`INSERT INTO buyers (client_id, partner_id, partner_category, company_id, store_code, business_type_id, location_condition_id, sale_size_id, credit_error_type, credit_max, slip_note)
           VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
         [
           client_id,
           partner_id,
           partnerCategory,
-          cachedId(ctx, "companies", row.T0511),
+          company_id,
           normalizeInt(row.T0513),
-          cachedId(ctx, "business_types", row.T0601),
-          cachedId(ctx, "location_conditions", row.T0603),
-          cachedId(ctx, "sale_sizes", row.T0605),
+          business_type_id,
+          location_condition_id,
+          sale_size_id,
           creditErrorTypeEnum[row.T2101],
           row.T2103,
           row.T24,
@@ -276,6 +295,9 @@ export async function processPartner(row, conn, ctx) {
       const buyer_id = b.insertId;
       // Not counting buyers table rows
       
+      // If T0803 is zero, don't insert delivery_route (set to null)
+      const delivery_route = (row.T0803 == "0" || row.T0803 == 0) ? null : row.T0803;
+      
       await q(`
           INSERT INTO buyer_details
             (code, start_date, bill_collector_id, slip_type_id, buyer_id, branch_id, department_id, salesman_id, delivery_course_id,
@@ -294,7 +316,7 @@ export async function processPartner(row, conn, ctx) {
           cachedId(ctx, "users", row.T0405),
           cachedId(ctx, "delivery_courses", (row.T0801 == "0" || row.T0801 == 0) ? "9999" : row.T0801),
           cachedId(ctx, "delivery_courses", (row.T0801 == "0" || row.T0801 == 0) ? "9999" : row.T0801),
-          row.T0803,
+          delivery_route,
           cachedId(ctx, "warehouses", row.T0805),
           cachedId(ctx, "warehouses", row.T0805),
           slipFractionEnum[row.T0609],
