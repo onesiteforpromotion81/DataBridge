@@ -66,8 +66,8 @@ function applyDefaultValues(filteredData, table) {
       row.is_created_from_data_transfer = 0;
     }
 
-    if (table === "branches" || table === "warehouses" || table === "manufacturers" || table === "brands") {
-      // Set default client_id for branches, warehouses, manufacturers, and brands
+    if (table === "branches" || table === "warehouses" || table === "manufacturers" || table === "brands" || table === "place_of_origins") {
+      // Set default client_id for branches, warehouses, manufacturers, brands, and place_of_origins
       row.client_id = 1;
     }
   });
