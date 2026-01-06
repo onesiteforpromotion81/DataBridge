@@ -1,5 +1,6 @@
 import pool from "../../db/connections.js";
 import { filterUniqueLocations } from "../../common/helpers/filterUniqueLocations.js";
+import bcrypt from "bcrypt";
 
 /**
  * Transform and filter data based on table type
@@ -195,9 +196,20 @@ async function resolveForeignKeys(filteredData, table) {
 }
 
 /**
- * Apply special transformations (e.g., item_partner_prices expansion)
+ * Apply special transformations (e.g., item_partner_prices expansion, password hashing)
  */
 async function applySpecialTransformations(filteredData, table) {
+  // Hash passwords for users table (compatible with Laravel's Hash::make)
+  if (table === "users") {
+    for (const row of filteredData) {
+      if (row.password) {
+        // Hash password using bcrypt (Laravel uses bcrypt with cost 10 by default)
+        // Laravel's Hash::make uses bcrypt with rounds=10
+        row.password = await bcrypt.hash(String(row.password), 10);
+      }
+    }
+  }
+
   if (table === "item_partner_prices") {
     // Filter out rows where TKM050 is 1
     filteredData = filteredData.filter(row => row.TKM050 !== "1" && row.TKM050 !== 1);
