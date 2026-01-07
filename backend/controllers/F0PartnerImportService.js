@@ -211,18 +211,36 @@ export async function processPartner(row, conn, ctx) {
       bill_group_id = billGroupRows.length ? billGroupRows[0].id : partner_id;
     }
 
-    // Get partner_price_group_id from partners where code = T0509
-    let partner_price_group_id = partner_id; // Default to current partner_id
-    if (row.T0509) {
-      const [priceGroupRows] = await q(
+    // Handle partner_price_group_id and item_conversion_group_id based on T02 and T0509
+    let partner_price_group_id = null;
+    let item_conversion_group_id = null;
+    
+    // Check if T0509 is not zero
+    const t0509Value = row.T0509;
+    const isT0509NotZero = t0509Value != null && t0509Value != "0" && t0509Value != 0 && String(t0509Value).trim() !== "";
+    
+    if (isT0509NotZero) {
+      // Get partners.id where partners.code = T0509
+      const [t0509Rows] = await q(
         `SELECT id FROM partners WHERE code = ? LIMIT 1`,
-        [row.T0509]
+        [t0509Value]
       );
-      partner_price_group_id = priceGroupRows.length ? priceGroupRows[0].id : partner_id;
+      
+      if (t0509Rows.length) {
+        const t0509PartnerId = t0509Rows[0].id;
+        
+        // If T02 is 0-9 (supplier): set partner_price_group_id
+        if (isSupplier) {
+          partner_price_group_id = t0509PartnerId;
+        } else {
+          // If T02 is NOT 0-9 (buyer): set item_conversion_group_id
+          item_conversion_group_id = t0509PartnerId;
+        }
+      }
     }
 
-    await q(`UPDATE partners SET bill_group_id=?, partner_price_group_id=? WHERE id=?`,
-      [bill_group_id, partner_price_group_id, partner_id]);
+    await q(`UPDATE partners SET bill_group_id=?, partner_price_group_id=?, item_conversion_group_id=? WHERE id=?`,
+      [bill_group_id, partner_price_group_id, item_conversion_group_id, partner_id]);
 
     if(isSupplier){
       const partnerCategory = supplierEnum(t02Num);
