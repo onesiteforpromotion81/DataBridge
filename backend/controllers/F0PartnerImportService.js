@@ -67,6 +67,7 @@ export async function buildPartnerImportContext(conn, rows = []) {
     "delivery_courses",
     "warehouses",
     "ledger_classifications",
+    "slip_types",
   ];
 
   const ids = {};
@@ -352,6 +353,18 @@ export async function processPartner(row, conn, ctx) {
       // If T0803 is zero, don't insert delivery_route (set to null)
       const delivery_route = (row.T0803 == "0" || row.T0803 == 0) ? null : row.T0803;
       
+      // Get slip_type_id from slip_types where code = 0
+      // slip_type_code is always 0, so look up slip_types.id where code = 0
+      let slip_type_id = cachedId(ctx, "slip_types", "0");
+      // Fallback: query directly if not in cache
+      if (!slip_type_id) {
+        const [slipTypeRows] = await q(
+          `SELECT id FROM slip_types WHERE code = ? LIMIT 1`,
+          ["0"]
+        );
+        slip_type_id = slipTypeRows.length ? slipTypeRows[0].id : null;
+      }
+      
       await q(`
           INSERT INTO buyer_details
             (code, start_date, bill_collector_id, slip_type_id, buyer_id, branch_id, department_id, salesman_id, delivery_course_id,
@@ -363,7 +376,7 @@ export async function processPartner(row, conn, ctx) {
           client_id,
           parseCsvDate(default_date),
           cachedId(ctx, "users", row.T0405),
-          0,
+          slip_type_id,
           buyer_id,
           cachedIdOrDefault(ctx, "branches", row.T0401, 1),
           cachedId(ctx, "departments", (row.T0403 == "0" || row.T0403 == 0) ? "6000" : row.T0403),
