@@ -225,36 +225,47 @@ export async function processPartner(row, conn, ctx) {
     // Normalize T0509 using the same key() function used for partner codes
     const t0509Code = key(row.T0509);
     
-    // Check if T0509 is not zero: only check for exactly "0" or 0, not if it converts to 0
-    if (t0509Code && t0509Code !== "0" && t0509Code !== 0) {
-      let t0509PartnerId = null;
-      
-      // First, try to find in the shared cache (partners inserted in this batch)
-      if (ctx?.partnerCodeToIdMap && ctx.partnerCodeToIdMap.has(t0509Code)) {
-        t0509PartnerId = ctx.partnerCodeToIdMap.get(t0509Code);
-      } else {
-        // Fallback to database lookup (for partners that existed before this import)
-        const [t0509Rows] = await q(
-          `SELECT id FROM partners WHERE code = ? LIMIT 1`,
-          [t0509Code]
-        );
-        if (t0509Rows.length) {
-          t0509PartnerId = t0509Rows[0].id;
-        }
-      }
-      
-      if (t0509PartnerId) {
-        // If T02 is 0-9 (supplier): set partner_price_group_id
-        if (isSupplier) {
-          partner_price_group_id = t0509PartnerId;
+    // Check if T0509 is not zero: check if it exists and numeric value is not zero
+    if (t0509Code) {
+      const t0509Num = Number(t0509Code);
+      // Only proceed if T0509 is not zero (handles "0", 0, "00", "000", etc.)
+      if (!isNaN(t0509Num) && t0509Num !== 0) {
+        let t0509PartnerId = null;
+        
+        // First, try to find in the shared cache (partners inserted in this batch)
+        if (ctx?.partnerCodeToIdMap && ctx.partnerCodeToIdMap.has(t0509Code)) {
+          t0509PartnerId = ctx.partnerCodeToIdMap.get(t0509Code);
+          console.log(`[partners] Found T0509=${t0509Code} in cache: partner_id=${t0509PartnerId} for partner code=${code}, T02=${row.T02}, isSupplier=${isSupplier}`);
         } else {
-          // If T02 is NOT 0-9 (buyer): set item_conversion_group_id
-          item_conversion_group_id = t0509PartnerId;
+          // Fallback to database lookup (for partners that existed before this import)
+          const [t0509Rows] = await q(
+            `SELECT id FROM partners WHERE code = ? LIMIT 1`,
+            [t0509Code]
+          );
+          if (t0509Rows.length) {
+            t0509PartnerId = t0509Rows[0].id;
+            console.log(`[partners] Found T0509=${t0509Code} in DB: partner_id=${t0509PartnerId} for partner code=${code}, T02=${row.T02}, isSupplier=${isSupplier}`);
+          } else {
+            console.log(`[partners] T0509=${t0509Code} not found in cache or DB for partner code=${code}, T02=${row.T02}, isSupplier=${isSupplier}`);
+          }
+        }
+        
+        if (t0509PartnerId) {
+          // If T02 is 0-9 (supplier): set partner_price_group_id
+          if (isSupplier) {
+            partner_price_group_id = t0509PartnerId;
+            console.log(`[partners] Setting partner_price_group_id=${t0509PartnerId} for supplier (T02=${row.T02}, code=${code})`);
+          } else {
+            // If T02 is NOT 0-9 (buyer): set item_conversion_group_id
+            item_conversion_group_id = t0509PartnerId;
+            console.log(`[partners] Setting item_conversion_group_id=${t0509PartnerId} for buyer (T02=${row.T02}, code=${code})`);
+          }
         }
       } else {
-        // Partner with code T0509 not found - log for debugging
-        console.log(`[partners] Partner with code ${t0509Code} (T0509) not found for partner code ${code}, T02=${row.T02}`);
+        console.log(`[partners] T0509 is zero (value="${t0509Code}", num=${t0509Num}) for partner code=${code}, T02=${row.T02} - skipping`);
       }
+    } else {
+      console.log(`[partners] T0509 is null/empty for partner code=${code}, T02=${row.T02} - skipping`);
     }
 
     await q(`UPDATE partners SET bill_group_id=?, partner_price_group_id=?, item_conversion_group_id=? WHERE id=?`,
