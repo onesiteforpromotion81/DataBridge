@@ -355,14 +355,35 @@ export async function processPartner(row, conn, ctx) {
       
       // Get slip_type_id from slip_types where code = 0
       // slip_type_code is always 0, so look up slip_types.id where code = 0
+      // Try cache first (using "0" as string key)
       let slip_type_id = cachedId(ctx, "slip_types", "0");
-      // Fallback: query directly if not in cache
+      
+      // Also try cache with numeric 0 key (in case code is stored as number in cache)
       if (!slip_type_id) {
-        const [slipTypeRows] = await q(
+        slip_type_id = cachedId(ctx, "slip_types", 0);
+      }
+      
+      // Fallback: query directly if not in cache
+      // Try both string "0" and number 0 since code column might be numeric or string
+      if (!slip_type_id) {
+        let [slipTypeRows] = await q(
           `SELECT id FROM slip_types WHERE code = ? LIMIT 1`,
-          ["0"]
+          [0]  // Try numeric first (most common)
         );
+        if (!slipTypeRows.length) {
+          // Try with string "0"
+          [slipTypeRows] = await q(
+            `SELECT id FROM slip_types WHERE code = ? LIMIT 1`,
+            ["0"]
+          );
+        }
         slip_type_id = slipTypeRows.length ? slipTypeRows[0].id : null;
+        
+        if (!slip_type_id) {
+          console.log(`[partners] Warning: slip_type with code=0 not found for buyer_details. partner_code=${code}`);
+        } else {
+          console.log(`[partners] Found slip_type_id=${slip_type_id} for code=0, partner_code=${code}`);
+        }
       }
       
       await q(`
