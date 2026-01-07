@@ -24,7 +24,7 @@ export const DEFAULT_COLUMN_MAPPING_Location = {
 };
 
 export const client_id = 1;
-export const default_date = '19000101';
+export const default_date = '20260101';
 
 /**
  * Mapping of handler file names (without .js extension) to their Japanese display names.
