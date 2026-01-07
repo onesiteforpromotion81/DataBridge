@@ -215,15 +215,15 @@ export async function processPartner(row, conn, ctx) {
     let partner_price_group_id = null;
     let item_conversion_group_id = null;
     
-    // Check if T0509 is not zero
-    const t0509Value = row.T0509;
-    const isT0509NotZero = t0509Value != null && t0509Value != "0" && t0509Value != 0 && String(t0509Value).trim() !== "";
+    // Normalize T0509 using the same key() function used for partner codes
+    const t0509Code = key(row.T0509);
     
-    if (isT0509NotZero) {
+    // Check if T0509 is not zero (key() returns null for empty strings, so we check for null and "0")
+    if (t0509Code && t0509Code !== "0" && Number(t0509Code) !== 0) {
       // Get partners.id where partners.code = T0509
       const [t0509Rows] = await q(
         `SELECT id FROM partners WHERE code = ? LIMIT 1`,
-        [t0509Value]
+        [t0509Code]
       );
       
       if (t0509Rows.length) {
@@ -236,6 +236,9 @@ export async function processPartner(row, conn, ctx) {
           // If T02 is NOT 0-9 (buyer): set item_conversion_group_id
           item_conversion_group_id = t0509PartnerId;
         }
+      } else {
+        // Partner with code T0509 not found - this might happen if it hasn't been inserted yet
+        console.log(`[partners] Partner with code ${t0509Code} (T0509) not found for partner code ${code}, T02=${row.T02}`);
       }
     }
 
