@@ -235,18 +235,15 @@ export async function processPartner(row, conn, ctx) {
         // First, try to find in the shared cache (partners inserted in this batch)
         if (ctx?.partnerCodeToIdMap && ctx.partnerCodeToIdMap.has(t0509Code)) {
           t0509PartnerId = ctx.partnerCodeToIdMap.get(t0509Code);
-          console.log(`[partners] Found T0509=${t0509Code} in cache: partner_id=${t0509PartnerId} for partner code=${code}, T02=${row.T02}, isSupplier=${isSupplier}`);
         } else {
           // Fallback to database lookup (for partners that existed before this import)
+          // Note: If not found, the second pass will handle it after all partners are inserted
           const [t0509Rows] = await q(
             `SELECT id FROM partners WHERE code = ? LIMIT 1`,
             [t0509Code]
           );
           if (t0509Rows.length) {
             t0509PartnerId = t0509Rows[0].id;
-            console.log(`[partners] Found T0509=${t0509Code} in DB: partner_id=${t0509PartnerId} for partner code=${code}, T02=${row.T02}, isSupplier=${isSupplier}`);
-          } else {
-            console.log(`[partners] T0509=${t0509Code} not found in cache or DB for partner code=${code}, T02=${row.T02}, isSupplier=${isSupplier}`);
           }
         }
         
@@ -254,18 +251,13 @@ export async function processPartner(row, conn, ctx) {
           // If T02 is 0-9 (supplier): set partner_price_group_id
           if (isSupplier) {
             partner_price_group_id = t0509PartnerId;
-            console.log(`[partners] Setting partner_price_group_id=${t0509PartnerId} for supplier (T02=${row.T02}, code=${code})`);
           } else {
             // If T02 is NOT 0-9 (buyer): set item_conversion_group_id
             item_conversion_group_id = t0509PartnerId;
-            console.log(`[partners] Setting item_conversion_group_id=${t0509PartnerId} for buyer (T02=${row.T02}, code=${code})`);
           }
         }
-      } else {
-        console.log(`[partners] T0509 is zero (value="${t0509Code}", num=${t0509Num}) for partner code=${code}, T02=${row.T02} - skipping`);
+        // If t0509PartnerId is null, the second pass will handle it after all partners are inserted
       }
-    } else {
-      console.log(`[partners] T0509 is null/empty for partner code=${code}, T02=${row.T02} - skipping`);
     }
 
     await q(`UPDATE partners SET bill_group_id=?, partner_price_group_id=?, item_conversion_group_id=? WHERE id=?`,
@@ -507,6 +499,97 @@ export async function processPartner(row, conn, ctx) {
     return { success: false, rowsInserted: 0 };
   } finally {
     // conn.release();
+  }
+}
+
+/**
+ * Second pass: Update partner_price_group_id and item_conversion_group_id
+ * This is done after all partners are inserted to handle cases where T0509 references
+ * partners that haven't been inserted yet during the first pass.
+ */
+export async function updatePartnerGroupIds(data) {
+  const conn = await pool.getConnection();
+  const queryTimeoutMs = Number(process.env.DB_QUERY_TIMEOUT_MS || 120000);
+  const q = (sql, params = []) => conn.query({ sql, timeout: queryTimeoutMs }, params);
+  
+  try {
+    console.log("[partners] Starting second pass to update partner_price_group_id and item_conversion_group_id...");
+    let updated = 0;
+    let notFound = 0;
+    let skipped = 0;
+    
+    for (const row of data) {
+      const code = key(row.T0101);
+      if (!code) {
+        skipped++;
+        continue;
+      }
+      
+      // Normalize T0509
+      const t0509Code = key(row.T0509);
+      if (!t0509Code) {
+        skipped++;
+        continue;
+      }
+      
+      // Check if T0509 is not zero
+      const t0509Num = Number(t0509Code);
+      if (isNaN(t0509Num) || t0509Num === 0) {
+        skipped++;
+        continue;
+      }
+      
+      // Get the partner_id for the current partner (code)
+      const [currentPartnerRows] = await q(
+        `SELECT id, is_supplier FROM partners WHERE code = ? LIMIT 1`,
+        [code]
+      );
+      
+      if (!currentPartnerRows.length) {
+        skipped++;
+        continue;
+      }
+      
+      const currentPartnerId = currentPartnerRows[0].id;
+      const isSupplier = currentPartnerRows[0].is_supplier === 1;
+      
+      // Get the partner_id for T0509
+      const [t0509Rows] = await q(
+        `SELECT id FROM partners WHERE code = ? LIMIT 1`,
+        [t0509Code]
+      );
+      
+      if (!t0509Rows.length) {
+        notFound++;
+        console.log(`[partners] Second pass: Partner with code ${t0509Code} (T0509) not found for partner code ${code}`);
+        continue;
+      }
+      
+      const t0509PartnerId = t0509Rows[0].id;
+      
+      // Update based on is_supplier
+      if (isSupplier) {
+        await q(
+          `UPDATE partners SET partner_price_group_id = ? WHERE id = ?`,
+          [t0509PartnerId, currentPartnerId]
+        );
+      } else {
+        await q(
+          `UPDATE partners SET item_conversion_group_id = ? WHERE id = ?`,
+          [t0509PartnerId, currentPartnerId]
+        );
+      }
+      
+      updated++;
+    }
+    
+    console.log(`[partners] Second pass complete: updated=${updated}, notFound=${notFound}, skipped=${skipped}`);
+    return { updated, notFound, skipped };
+  } catch (err) {
+    console.error("[partners] Second pass failed:", err);
+    throw err;
+  } finally {
+    conn.release();
   }
 }
 

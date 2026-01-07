@@ -30,6 +30,7 @@ export async function importPartners(data) {
   const {
     processPartner,
     buildPartnerImportContext,
+    updatePartnerGroupIds,
   } = await import("../F0PartnerImportService.js");
 
   const startedAt = Date.now();
@@ -95,12 +96,18 @@ export async function importPartners(data) {
 
       await Promise.all(workers);
 
+      // Second pass: Update partner_price_group_id and item_conversion_group_id
+      // This handles cases where T0509 references partners that weren't inserted yet
+      const secondPassResult = await updatePartnerGroupIds(data);
+      console.log(`[partners] Second pass: ${secondPassResult.updated} partners updated, ${secondPassResult.notFound} not found, ${secondPassResult.skipped} skipped`);
+
       return {
         message: "Partner CSV processed successfully",
         inserted,
         skipped,
         failed,
         totalRowsInserted, // Total database rows inserted across all tables
+        secondPass: secondPassResult,
         tableNames: [
           "partners",
           "suppliers",
@@ -150,12 +157,18 @@ export async function importPartners(data) {
       conn.release();
     }
     
+    // Second pass: Update partner_price_group_id and item_conversion_group_id
+    // This handles cases where T0509 references partners that weren't inserted yet
+    const secondPassResult = await updatePartnerGroupIds(data);
+    console.log(`[partners] Second pass: ${secondPassResult.updated} partners updated, ${secondPassResult.notFound} not found, ${secondPassResult.skipped} skipped`);
+    
     return { 
       message: "Partner CSV processed successfully",
       inserted,
       skipped,
       failed,
       totalRowsInserted, // Total database rows inserted across all tables
+      secondPass: secondPassResult,
       tableNames: [
         "partners",
         "suppliers",
