@@ -248,11 +248,11 @@ export async function processPartner(row, conn, ctx) {
         }
         
         if (t0509PartnerId) {
-          // If T02 is 0-9 (supplier): set partner_price_group_id
-          if (isSupplier) {
-            partner_price_group_id = t0509PartnerId;
-          } else {
-            // If T02 is NOT 0-9 (buyer): set item_conversion_group_id
+          // Always set partner_price_group_id when T0509 is not zero
+          partner_price_group_id = t0509PartnerId;
+          
+          // If T02 is NOT 0-9 (buyer): also set item_conversion_group_id
+          if (!isSupplier) {
             item_conversion_group_id = t0509PartnerId;
           }
         }
@@ -567,13 +567,14 @@ export async function updatePartnerGroupIds(data) {
       
       const t0509PartnerId = t0509Rows[0].id;
       
-      // Update based on is_supplier
-      if (isSupplier) {
-        await q(
-          `UPDATE partners SET partner_price_group_id = ? WHERE id = ?`,
-          [t0509PartnerId, currentPartnerId]
-        );
-      } else {
+      // Always set partner_price_group_id when T0509 is not zero
+      await q(
+        `UPDATE partners SET partner_price_group_id = ? WHERE id = ?`,
+        [t0509PartnerId, currentPartnerId]
+      );
+      
+      // If buyer (not supplier): also set item_conversion_group_id
+      if (!isSupplier) {
         await q(
           `UPDATE partners SET item_conversion_group_id = ? WHERE id = ?`,
           [t0509PartnerId, currentPartnerId]
