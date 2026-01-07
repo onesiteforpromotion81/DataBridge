@@ -397,8 +397,10 @@ export async function processPartner(row, conn, ctx) {
           cachedId(ctx, "delivery_courses", (row.T0801 == "0" || row.T0801 == 0) ? "9999" : row.T0801),
           cachedId(ctx, "delivery_courses", (row.T0801 == "0" || row.T0801 == 0) ? "9999" : row.T0801),
           delivery_route,
-          cachedId(ctx, "warehouses", row.T0805),
-          cachedId(ctx, "warehouses", row.T0805),
+          // If T0805 is zero, use T0401 for delivery_warehouse_id lookup
+          cachedId(ctx, "warehouses", (row.T0805 == "0" || row.T0805 == 0) ? row.T0401 : row.T0805),
+          // If T0805 is zero, use T0401 for holiday_delivery_warehouse_id lookup
+          cachedId(ctx, "warehouses", (row.T0805 == "0" || row.T0805 == 0) ? row.T0401 : row.T0805),
           slipFractionEnum[row.T0609],
           partnerPrintEnum[row.T0621],
           displayTaxEnum[row.T0701],
