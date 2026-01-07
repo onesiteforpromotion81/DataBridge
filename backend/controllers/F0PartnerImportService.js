@@ -156,16 +156,28 @@ export async function processPartner(row, conn, ctx) {
     const isSupplier = t02Num <= 9;
     
     // Handle postal_code: if T15 is zero, set to null; if T1501 is empty/whitespace, replace with "0000"
+    // If T15 is not zero and length < 3, pad with leading zeros to make it length 3
+    // If T1501 is not null and length < 4, pad with leading zeros to make it length 4
     let postal_code = null;
     if (row.T15 != "0" && row.T15 != 0) {
+      let t15 = String(row.T15).trim();
+      // If T15 length is less than 3, pad with leading zeros to make it length 3
+      if (t15.length < 3) {
+        t15 = t15.padStart(3, "0");
+      }
+      
       let t1501 = row.T1501;
       // Check if T1501 is null, undefined, empty string, or whitespace-only
       if (t1501 == null || t1501 === undefined || String(t1501).trim() === "") {
         t1501 = "0000";
       } else {
         t1501 = String(t1501).trim();
+        // If T1501 length is less than 4, pad with leading zeros to make it length 4
+        if (t1501.length < 4) {
+          t1501 = t1501.padStart(4, "0");
+        }
       }
-      postal_code = `${row.T15}-${t1501}`;
+      postal_code = `${t15}-${t1501}`;
     }
     
     const [p] = await q(`
