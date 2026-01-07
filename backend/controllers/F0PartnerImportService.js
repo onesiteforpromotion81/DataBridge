@@ -122,7 +122,9 @@ export async function buildPartnerImportContext(conn, rows = []) {
   console.log(
     `[partners] context built: csvCodes=${allCodes.length}, existing=${existingPartnerCodes.size}, elapsed=${Date.now() - startedAt}ms`
   );
-  return { ids, existingPartnerCodes, queryTimeoutMs };
+  // Shared Map to track partner codes to IDs as they're inserted (for T0509 lookups)
+  const partnerCodeToIdMap = new Map();
+  return { ids, existingPartnerCodes, queryTimeoutMs, partnerCodeToIdMap };
 }
 
 function cachedId(ctx, table, code) {
@@ -200,6 +202,11 @@ export async function processPartner(row, conn, ctx) {
     ]);
     const partner_id = p.insertId;
     let totalRowsInserted = 1; // Only count partners table rows (1 per partner)
+    
+    // Add this partner to the shared cache for T0509 lookups
+    if (ctx?.partnerCodeToIdMap) {
+      ctx.partnerCodeToIdMap.set(code, partner_id);
+    }
 
     // Get bill_group_id from partners where code = T0505
     let bill_group_id = partner_id; // Default to current partner_id
@@ -218,17 +225,25 @@ export async function processPartner(row, conn, ctx) {
     // Normalize T0509 using the same key() function used for partner codes
     const t0509Code = key(row.T0509);
     
-    // Check if T0509 is not zero (key() returns null for empty strings, so we check for null and "0")
-    if (t0509Code && t0509Code !== "0" && Number(t0509Code) !== 0) {
-      // Get partners.id where partners.code = T0509
-      const [t0509Rows] = await q(
-        `SELECT id FROM partners WHERE code = ? LIMIT 1`,
-        [t0509Code]
-      );
+    // Check if T0509 is not zero: only check for exactly "0" or 0, not if it converts to 0
+    if (t0509Code && t0509Code !== "0" && t0509Code !== 0) {
+      let t0509PartnerId = null;
       
-      if (t0509Rows.length) {
-        const t0509PartnerId = t0509Rows[0].id;
-        
+      // First, try to find in the shared cache (partners inserted in this batch)
+      if (ctx?.partnerCodeToIdMap && ctx.partnerCodeToIdMap.has(t0509Code)) {
+        t0509PartnerId = ctx.partnerCodeToIdMap.get(t0509Code);
+      } else {
+        // Fallback to database lookup (for partners that existed before this import)
+        const [t0509Rows] = await q(
+          `SELECT id FROM partners WHERE code = ? LIMIT 1`,
+          [t0509Code]
+        );
+        if (t0509Rows.length) {
+          t0509PartnerId = t0509Rows[0].id;
+        }
+      }
+      
+      if (t0509PartnerId) {
         // If T02 is 0-9 (supplier): set partner_price_group_id
         if (isSupplier) {
           partner_price_group_id = t0509PartnerId;
@@ -237,7 +252,7 @@ export async function processPartner(row, conn, ctx) {
           item_conversion_group_id = t0509PartnerId;
         }
       } else {
-        // Partner with code T0509 not found - this might happen if it hasn't been inserted yet
+        // Partner with code T0509 not found - log for debugging
         console.log(`[partners] Partner with code ${t0509Code} (T0509) not found for partner code ${code}, T02=${row.T02}`);
       }
     }
