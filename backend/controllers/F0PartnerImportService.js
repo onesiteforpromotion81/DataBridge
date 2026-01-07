@@ -355,35 +355,27 @@ export async function processPartner(row, conn, ctx) {
       
       // Get slip_type_id from slip_types where code = 0
       // slip_type_code is always 0, so look up slip_types.id where code = 0
-      // Try cache first (using "0" as string key)
-      let slip_type_id = cachedId(ctx, "slip_types", "0");
+      // The ID should be 7 based on current DB
+      let slip_type_id = null;
       
-      // Also try cache with numeric 0 key (in case code is stored as number in cache)
-      if (!slip_type_id) {
-        slip_type_id = cachedId(ctx, "slip_types", 0);
-      }
+      // Try cache first (using "0" as string key, since key() converts to string)
+      slip_type_id = cachedId(ctx, "slip_types", "0");
       
       // Fallback: query directly if not in cache
-      // Try both string "0" and number 0 since code column might be numeric or string
+      // Query with numeric 0 (code column is likely numeric)
       if (!slip_type_id) {
-        let [slipTypeRows] = await q(
+        const [slipTypeRows] = await q(
           `SELECT id FROM slip_types WHERE code = ? LIMIT 1`,
-          [0]  // Try numeric first (most common)
+          [0]
         );
-        if (!slipTypeRows.length) {
-          // Try with string "0"
-          [slipTypeRows] = await q(
-            `SELECT id FROM slip_types WHERE code = ? LIMIT 1`,
-            ["0"]
-          );
+        if (slipTypeRows.length) {
+          slip_type_id = slipTypeRows[0].id;
         }
-        slip_type_id = slipTypeRows.length ? slipTypeRows[0].id : null;
-        
-        if (!slip_type_id) {
-          console.log(`[partners] Warning: slip_type with code=0 not found for buyer_details. partner_code=${code}`);
-        } else {
-          console.log(`[partners] Found slip_type_id=${slip_type_id} for code=0, partner_code=${code}`);
-        }
+      }
+      
+      // If still not found, log warning
+      if (!slip_type_id) {
+        console.log(`[partners] Warning: slip_type with code=0 not found for buyer_details. partner_code=${code}`);
       }
       
       await q(`
