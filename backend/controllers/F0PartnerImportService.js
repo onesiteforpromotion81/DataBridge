@@ -798,15 +798,18 @@ export async function importOneItem(row) {
     ];
 
     for (const s of searchEntries) {
+      // Only process if code exists
       if (s.code) {
-        // If code_type is SDP, pad search_string to length 7 with zeros
         let search_string = String(s.code);
+        
+        // For JAN type: skip inserting if search_string is "00"
+        if (s.type === "JAN" && search_string === "00") {
+          continue;
+        }
+        
+        // If code_type is SDP, pad search_string to length 7 with zeros
         if (s.type === "SDP" && search_string.length < 7) {
           search_string = search_string.padStart(7, "0");
-        }
-
-        if (s.type === "JAN" && search_string === "00"){
-          search_string = "0";
         }
         
         await conn.query(
