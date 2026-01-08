@@ -67,8 +67,8 @@ function applyDefaultValues(filteredData, table) {
       row.is_created_from_data_transfer = 0;
     }
 
-    if (table === "branches" || table === "warehouses" || table === "manufacturers" || table === "brands" || table === "place_of_origins" || table === "storage_types") {
-      // Set default client_id for branches, warehouses, manufacturers, brands, place_of_origins, and storage_types
+    if (table === "branches" || table === "warehouses" || table === "manufacturers" || table === "brands" || table === "place_of_origins" || table === "storage_types" || table === "business_types" || table === "sale_sizes" || table === "location_conditions") {
+      // Set default client_id for branches, warehouses, manufacturers, brands, place_of_origins, storage_types, business_types, sale_sizes, and location_conditions
       // Always force to 1, even if CSV contains a different value
       row.client_id = 1;
     }
@@ -347,8 +347,8 @@ async function applySpecialTransformations(filteredData, table) {
     return finalRows;
   }
 
-  // Ensure client_id is always 1 for place_of_origins and storage_types (final safeguard)
-  if (table === "place_of_origins" || table === "storage_types") {
+  // Final safeguard to ensure client_id is always 1 for specific tables
+  if (table === "branches" || table === "warehouses" || table === "manufacturers" || table === "brands" || table === "place_of_origins" || table === "storage_types" || table === "business_types" || table === "sale_sizes" || table === "location_conditions") {
     filteredData.forEach(row => {
       row.client_id = 1;
     });
