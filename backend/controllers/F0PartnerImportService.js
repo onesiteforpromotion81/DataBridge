@@ -792,12 +792,21 @@ export async function importOneItem(row) {
     const total_value = row.S0307 + row.S0309;
 
     const searchEntries = [
-      { code: total_value, type: "JAN", priority: 1 },
+      { code: total_value, type: "JAN", priority: 1, s0307: row.S0307, s0309: row.S0309 },
       { code: row.S0311, type: "SDP", priority: 2 },
       { code: row.S0315, type: "OTHER", priority: 3 }
     ];
 
     for (const s of searchEntries) {
+      // Skip JAN entry if both S0307 and S0309 are zero
+      if (s.type === "JAN") {
+        const s0307IsZero = (s.s0307 == "0" || s.s0307 == 0 || !s.s0307);
+        const s0309IsZero = (s.s0309 == "0" || s.s0309 == 0 || !s.s0309);
+        if (s0307IsZero && s0309IsZero) {
+          continue; // Skip inserting this JAN entry
+        }
+      }
+      
       if (s.code) {
         // If code_type is SDP, pad search_string to length 7 with zeros
         let search_string = String(s.code);
