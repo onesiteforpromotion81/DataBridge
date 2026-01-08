@@ -798,23 +798,7 @@ export async function importOneItem(row) {
     ];
 
     for (const s of searchEntries) {
-      // For JAN type: always insert, but if total_value is "00", set search_string to null
-      if (s.type === "JAN") {
-        let search_string = null;
-        const totalValueStr = String(total_value || "");
-        // If total_value is not "00", use it as search_string
-        if (totalValueStr !== "00") {
-          search_string = totalValueStr;
-        }
-        
-        await conn.query(
-          `INSERT INTO item_search_information (client_id, item_id, search_string, code_type, quantity_type, priority) 
-           VALUES (?, ?, ?, ?, 'PIECE', ?)`,
-          [client_id, item_id, search_string, s.type, s.priority]
-        );
-        // Not counting item_search_information rows
-      } else if (s.code) {
-        // For SDP and OTHER types: only insert if code exists
+      if (s.code) {
         // If code_type is SDP, pad search_string to length 7 with zeros
         let search_string = String(s.code);
         if (s.type === "SDP" && search_string.length < 7) {
