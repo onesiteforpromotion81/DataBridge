@@ -798,16 +798,25 @@ export async function importOneItem(row) {
     ];
 
     for (const s of searchEntries) {
-      // Skip JAN entry if both S0307 and S0309 are zero
+      // For JAN type: if both S0307 and S0309 are zero, insert with search_string = null
       if (s.type === "JAN") {
         const s0307IsZero = (s.s0307 == "0" || s.s0307 == 0 || !s.s0307);
         const s0309IsZero = (s.s0309 == "0" || s.s0309 == 0 || !s.s0309);
-        if (s0307IsZero && s0309IsZero) {
-          continue; // Skip inserting this JAN entry
+        
+        let search_string = null;
+        if (!(s0307IsZero && s0309IsZero)) {
+          // If at least one is not zero, use the total_value
+          search_string = String(total_value);
         }
-      }
-      
-      if (s.code) {
+        
+        await conn.query(
+          `INSERT INTO item_search_information (client_id, item_id, search_string, code_type, quantity_type, priority) 
+           VALUES (?, ?, ?, ?, 'PIECE', ?)`,
+          [client_id, item_id, search_string, s.type, s.priority]
+        );
+        // Not counting item_search_information rows
+      } else if (s.code) {
+        // For SDP and OTHER types: only insert if code exists
         // If code_type is SDP, pad search_string to length 7 with zeros
         let search_string = String(s.code);
         if (s.type === "SDP" && search_string.length < 7) {
