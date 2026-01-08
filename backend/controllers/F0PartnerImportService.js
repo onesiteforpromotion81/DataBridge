@@ -804,6 +804,10 @@ export async function importOneItem(row) {
         if (s.type === "SDP" && search_string.length < 7) {
           search_string = search_string.padStart(7, "0");
         }
+
+        if (s.type === "JAN" && search_string === "00"){
+          search_string = null;
+        }
         
         await conn.query(
           `INSERT INTO item_search_information (client_id, item_id, search_string, code_type, quantity_type, priority) 
