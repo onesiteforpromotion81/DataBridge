@@ -789,34 +789,29 @@ export async function importOneItem(row) {
     // ----------------------------------------------------
     // 4) INSERT item_search_information
     // ----------------------------------------------------
-    const total_value = row.S0307 + row.S0309;
+    // Insert JAN entry (always insert; search_string may be null)
+    const s0307Val = Number(row.S0307 || 0);
+    const s0309Val = Number(row.S0309 || 0);
+    const janBothZero = s0307Val === 0 && s0309Val === 0;
+    const janSearchString = janBothZero
+      ? null
+      : String(s0307Val + s0309Val);
 
+    await conn.query(
+      `INSERT INTO item_search_information (client_id, item_id, search_string, code_type, quantity_type, priority) 
+       VALUES (?, ?, ?, ?, 'PIECE', ?)`,
+      [client_id, item_id, janSearchString, "JAN", 1]
+    );
+    // Not counting item_search_information rows
+
+    // Insert SDP / OTHER if present
     const searchEntries = [
-      { code: total_value, type: "JAN", priority: 1, s0307: row.S0307, s0309: row.S0309 },
       { code: row.S0311, type: "SDP", priority: 2 },
       { code: row.S0315, type: "OTHER", priority: 3 }
     ];
 
     for (const s of searchEntries) {
-      // For JAN type: if both S0307 and S0309 are zero, insert with search_string = null
-      if (s.type === "JAN") {
-        const s0307IsZero = (s.s0307 == "0" || s.s0307 == 0 || !s.s0307);
-        const s0309IsZero = (s.s0309 == "0" || s.s0309 == 0 || !s.s0309);
-        
-        let search_string = null;
-        if (!(s0307IsZero && s0309IsZero)) {
-          // If at least one is not zero, use the total_value
-          search_string = String(total_value);
-        }
-        
-        await conn.query(
-          `INSERT INTO item_search_information (client_id, item_id, search_string, code_type, quantity_type, priority) 
-           VALUES (?, ?, ?, ?, 'PIECE', ?)`,
-          [client_id, item_id, search_string, s.type, s.priority]
-        );
-        // Not counting item_search_information rows
-      } else if (s.code) {
-        // For SDP and OTHER types: only insert if code exists
+      if (s.code) {
         // If code_type is SDP, pad search_string to length 7 with zeros
         let search_string = String(s.code);
         if (s.type === "SDP" && search_string.length < 7) {
