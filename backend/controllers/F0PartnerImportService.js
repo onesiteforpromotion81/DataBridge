@@ -806,7 +806,7 @@ export async function importOneItem(row) {
         }
 
         if (s.type === "JAN" && search_string === "00"){
-          search_string = null;
+          search_string = "0";
         }
         
         await conn.query(
