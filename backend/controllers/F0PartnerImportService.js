@@ -481,6 +481,18 @@ export async function processPartner(row, conn, ctx) {
       map[row.T2203_7] ?? null
     ];
 
+    // Get partner_timetable_plan_id from partner_timetable_plans where partner_id matches
+    let partner_timetable_plan_id = null;
+    if (weeks.length) {
+      const [planRows] = await q(
+        `SELECT id FROM partner_timetable_plans WHERE partner_id = ? LIMIT 1`,
+        [partner_id]
+      );
+      if (planRows.length) {
+        partner_timetable_plan_id = planRows[0].id;
+      }
+    }
+
     // Insert rows
     if (weeks.length) {
       await q(`
@@ -489,7 +501,7 @@ export async function processPartner(row, conn, ctx) {
           sunday, monday, tuesday, wednesday,
           thursday, friday, saturday, updated_at)
         VALUES ?
-      `, [weeks.map(w => [partner_id, w, client_id, ...days, row.T29 || default_date])]);
+      `, [weeks.map(w => [partner_id, w, partner_timetable_plan_id, ...days, row.T29 || default_date])]);
       // Not counting partner_timetables table rows
     }
     ctx?.existingPartnerCodes?.add(code);
