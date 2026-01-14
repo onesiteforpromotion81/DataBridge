@@ -863,7 +863,7 @@ export async function importOneItem(row) {
     today.setHours(0, 0, 0, 0); // Set to start of day for comparison
 
     // Collect all date values
-    const dateKeys = ["S1601_1", "S1601_2", "S1601_3", "S1601_4", "S1601_5"];
+    const dateKeys = ["S1601_1", "S1601_2", "S1601_3", "S1601_4", "S1601_5", "S1601_6", "S1601_7"];
     const dates = dateKeys.map(key => {
       const val = row[key];
       return {
@@ -914,9 +914,10 @@ export async function importOneItem(row) {
     // Helper function to get price values for a row
     // For future date row (first): special dates → S1603_X/S1605_X, all others → S1609_X/S1611_X
     // For current/past date row (second): special OR > today → S1603_X/S1605_X, <= today → S1609_X/S1611_X
+    // Order: producer, cost, wholesale, sale, sub, retail, tax_exempt
     function getPriceValues(isFutureDateRow) {
       const prices = [];
-      for (let seq = 1; seq <= 5; seq++) {
+      for (let seq = 1; seq <= 7; seq++) {
         const dateKey = `S1601_${seq}`;
         const unitKey = `S1603_${seq}`;
         const caseKey = `S1605_${seq}`;
@@ -955,12 +956,14 @@ export async function importOneItem(row) {
     }
 
     // Helper function to apply tax_exempt price floor logic
-    // Prices array structure: [producer_unit, producer_case, sale_unit, sale_case, sub_unit, sub_case, retail_unit, retail_case, tax_exempt_unit, tax_exempt_case]
+    // Prices array structure: [producer_unit, producer_case, cost_unit, cost_case, wholesale_unit, wholesale_case, sale_unit, sale_case, sub_unit, sub_case, retail_unit, retail_case, tax_exempt_unit, tax_exempt_case]
     function applyTaxExemptPriceFloor(prices) {
-      if (prices.length < 10) return prices; // Safety check
+      if (prices.length < 14) return prices; // Safety check
       
       const [
         producer_unit_price, producer_case_price,
+        cost_unit_price, cost_case_price,
+        wholesale_unit_price, wholesale_case_price,
         sale_unit_price, sale_case_price,
         sub_unit_price, sub_case_price,
         retail_unit_price, retail_case_price,
@@ -990,6 +993,10 @@ export async function importOneItem(row) {
       return [
         applyUnitFloor(producer_unit_price),
         applyCaseFloor(producer_case_price),
+        applyUnitFloor(cost_unit_price),
+        applyCaseFloor(cost_case_price),
+        applyUnitFloor(wholesale_unit_price),
+        applyCaseFloor(wholesale_case_price),
         applyUnitFloor(sale_unit_price),
         applyCaseFloor(sale_case_price),
         applyUnitFloor(sub_unit_price),
@@ -1032,11 +1039,13 @@ export async function importOneItem(row) {
         INSERT INTO item_prices 
         (client_id, creator_id, last_updater_id, item_id, start_date,
          producer_unit_price, producer_case_price,
+         cost_unit_price, cost_case_price,
+         wholesale_unit_price, wholesale_case_price,
          sale_unit_price, sale_case_price,
          sub_unit_price, sub_case_price,
          retail_unit_price, retail_case_price,
          tax_exempt_unit_price, tax_exempt_case_price, type) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         client_id,
         client_id,
@@ -1057,11 +1066,13 @@ export async function importOneItem(row) {
         INSERT INTO item_prices 
         (client_id, creator_id, last_updater_id, item_id, start_date,
          producer_unit_price, producer_case_price,
+         cost_unit_price, cost_case_price,
+         wholesale_unit_price, wholesale_case_price,
          sale_unit_price, sale_case_price,
          sub_unit_price, sub_case_price,
          retail_unit_price, retail_case_price,
          tax_exempt_unit_price, tax_exempt_case_price, type) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         client_id,
         client_id,
