@@ -954,6 +954,53 @@ export async function importOneItem(row) {
       return prices;
     }
 
+    // Helper function to apply tax_exempt price floor logic
+    // Prices array structure: [producer_unit, producer_case, sale_unit, sale_case, sub_unit, sub_case, retail_unit, retail_case, tax_exempt_unit, tax_exempt_case]
+    function applyTaxExemptPriceFloor(prices) {
+      if (prices.length < 10) return prices; // Safety check
+      
+      const [
+        producer_unit_price, producer_case_price,
+        sale_unit_price, sale_case_price,
+        sub_unit_price, sub_case_price,
+        retail_unit_price, retail_case_price,
+        tax_exempt_unit_price, tax_exempt_case_price
+      ] = prices;
+      
+      // Convert to numbers for comparison, handling null/undefined
+      const taxExemptUnit = tax_exempt_unit_price != null ? Number(tax_exempt_unit_price) : null;
+      const taxExemptCase = tax_exempt_case_price != null ? Number(tax_exempt_case_price) : null;
+      
+      // Apply floor logic for unit prices
+      const applyUnitFloor = (price) => {
+        if (price == null || taxExemptUnit == null) return price;
+        const priceNum = Number(price);
+        if (isNaN(priceNum)) return price;
+        return priceNum < taxExemptUnit ? taxExemptUnit : priceNum;
+      };
+      
+      // Apply floor logic for case prices
+      const applyCaseFloor = (price) => {
+        if (price == null || taxExemptCase == null) return price;
+        const priceNum = Number(price);
+        if (isNaN(priceNum)) return price;
+        return priceNum < taxExemptCase ? taxExemptCase : priceNum;
+      };
+      
+      return [
+        applyUnitFloor(producer_unit_price),
+        applyCaseFloor(producer_case_price),
+        applyUnitFloor(sale_unit_price),
+        applyCaseFloor(sale_case_price),
+        applyUnitFloor(sub_unit_price),
+        applyCaseFloor(sub_case_price),
+        applyUnitFloor(retail_unit_price),
+        applyCaseFloor(retail_case_price),
+        tax_exempt_unit_price,
+        tax_exempt_case_price
+      ];
+    }
+
     // Determine item_prices.type based on S1750 and S1209/S1751
     let priceType = null;
     if (row.S1750 == "99999999" || row.S1750 == 99999999) {
@@ -979,6 +1026,7 @@ export async function importOneItem(row) {
     // Insert first row: future date (greater than today)
     if (startDate1) {
       const prices1 = getPriceValues(true); // true = future date row
+      const adjustedPrices1 = applyTaxExemptPriceFloor(prices1);
 
       await conn.query(`
         INSERT INTO item_prices 
@@ -995,7 +1043,7 @@ export async function importOneItem(row) {
         client_id,
         item_id,
         startDate1,
-        ...prices1,
+        ...adjustedPrices1,
         priceType
       ]);
     }
@@ -1003,6 +1051,7 @@ export async function importOneItem(row) {
     // Insert second row: current/past date (less than or equal to today) - only in Scenario 3
     if (startDate2) {
       const prices2 = getPriceValues(false); // false = current/past date row
+      const adjustedPrices2 = applyTaxExemptPriceFloor(prices2);
 
       await conn.query(`
         INSERT INTO item_prices 
@@ -1019,7 +1068,7 @@ export async function importOneItem(row) {
         client_id,
         item_id,
         startDate2,
-        ...prices2,
+        ...adjustedPrices2,
         priceType
       ]);
     }
