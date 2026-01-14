@@ -914,6 +914,7 @@ export async function importOneItem(row) {
     // Helper function to get price values for a row
     // For future date row (first): special dates → S1603_X/S1605_X, all others → S1609_X/S1611_X
     // For current/past date row (second): special OR > today → S1603_X/S1605_X, <= today → S1609_X/S1611_X
+    // CSV order: producer (seq 1), sale (seq 2), sub (seq 3), retail (seq 4), tax_exempt (seq 5)
     function getPriceValues(isFutureDateRow) {
       const prices = [];
       for (let seq = 1; seq <= 5; seq++) {
@@ -955,7 +956,9 @@ export async function importOneItem(row) {
     }
 
     // Helper function to apply tax_exempt price floor logic
-    // Prices array structure: [producer_unit, producer_case, sale_unit, sale_case, sub_unit, sub_case, retail_unit, retail_case, tax_exempt_unit, tax_exempt_case]
+    // Input prices array from CSV: [producer_unit, producer_case, sale_unit, sale_case, sub_unit, sub_case, retail_unit, retail_case, tax_exempt_unit, tax_exempt_case]
+    // Output: [producer_unit, producer_case, cost_unit, cost_case, wholesale_unit, wholesale_case, sale_unit, sale_case, sub_unit, sub_case, retail_unit, retail_case, tax_exempt_unit, tax_exempt_case]
+    // Note: cost and wholesale are not in CSV, so they default to null, but if tax_exempt prices are given, they are set to tax_exempt values
     function applyTaxExemptPriceFloor(prices) {
       if (prices.length < 10) return prices; // Safety check
       
@@ -966,6 +969,13 @@ export async function importOneItem(row) {
         retail_unit_price, retail_case_price,
         tax_exempt_unit_price, tax_exempt_case_price
       ] = prices;
+      
+      // cost and wholesale are not in CSV, so set to null by default
+      // But if tax_exempt prices are given, use them for cost and wholesale
+      const cost_unit_price = tax_exempt_unit_price != null ? tax_exempt_unit_price : null;
+      const cost_case_price = tax_exempt_case_price != null ? tax_exempt_case_price : null;
+      const wholesale_unit_price = tax_exempt_unit_price != null ? tax_exempt_unit_price : null;
+      const wholesale_case_price = tax_exempt_case_price != null ? tax_exempt_case_price : null;
       
       // Convert to numbers for comparison, handling null/undefined
       const taxExemptUnit = tax_exempt_unit_price != null ? Number(tax_exempt_unit_price) : null;
@@ -990,6 +1000,10 @@ export async function importOneItem(row) {
       return [
         applyUnitFloor(producer_unit_price),
         applyCaseFloor(producer_case_price),
+        cost_unit_price, // tax_exempt_unit_price if given, otherwise null
+        cost_case_price, // tax_exempt_case_price if given, otherwise null
+        wholesale_unit_price, // tax_exempt_unit_price if given, otherwise null
+        wholesale_case_price, // tax_exempt_case_price if given, otherwise null
         applyUnitFloor(sale_unit_price),
         applyCaseFloor(sale_case_price),
         applyUnitFloor(sub_unit_price),
@@ -1032,11 +1046,13 @@ export async function importOneItem(row) {
         INSERT INTO item_prices 
         (client_id, creator_id, last_updater_id, item_id, start_date,
          producer_unit_price, producer_case_price,
+         cost_unit_price, cost_case_price,
+         wholesale_unit_price, wholesale_case_price,
          sale_unit_price, sale_case_price,
          sub_unit_price, sub_case_price,
          retail_unit_price, retail_case_price,
          tax_exempt_unit_price, tax_exempt_case_price, type) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         client_id,
         client_id,
@@ -1057,11 +1073,13 @@ export async function importOneItem(row) {
         INSERT INTO item_prices 
         (client_id, creator_id, last_updater_id, item_id, start_date,
          producer_unit_price, producer_case_price,
+         cost_unit_price, cost_case_price,
+         wholesale_unit_price, wholesale_case_price,
          sale_unit_price, sale_case_price,
          sub_unit_price, sub_case_price,
          retail_unit_price, retail_case_price,
          tax_exempt_unit_price, tax_exempt_case_price, type) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         client_id,
         client_id,
