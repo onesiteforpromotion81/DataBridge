@@ -67,8 +67,8 @@ function applyDefaultValues(filteredData, table) {
       row.is_created_from_data_transfer = 0;
     }
 
-    if (table === "branches" || table === "warehouses" || table === "manufacturers" || table === "brands" || table === "place_of_origins" || table === "storage_types" || table === "business_types" || table === "sale_sizes" || table === "location_conditions") {
-      // Set default client_id for branches, warehouses, manufacturers, brands, place_of_origins, storage_types, business_types, sale_sizes, and location_conditions
+    if (table === "branches" || table === "warehouses" || table === "manufacturers" || table === "brands" || table === "place_of_origins" || table === "storage_types" || table === "business_types" || table === "sale_sizes" || table === "location_conditions" || table === "departments" || table === "account_classifications" || table === "areas") {
+      // Set default client_id for branches, warehouses, manufacturers, brands, place_of_origins, storage_types, business_types, sale_sizes, location_conditions, departments, account_classifications, and areas
       // Always force to 1, even if CSV contains a different value
       row.client_id = 1;
     }
@@ -348,7 +348,7 @@ async function applySpecialTransformations(filteredData, table) {
   }
 
   // Final safeguard to ensure client_id is always 1 for specific tables
-  if (table === "branches" || table === "warehouses" || table === "manufacturers" || table === "brands" || table === "place_of_origins" || table === "storage_types" || table === "business_types" || table === "sale_sizes" || table === "location_conditions") {
+  if (table === "branches" || table === "warehouses" || table === "manufacturers" || table === "brands" || table === "place_of_origins" || table === "storage_types" || table === "business_types" || table === "sale_sizes" || table === "location_conditions" || table === "departments" || table === "account_classifications" || table === "areas") {
     filteredData.forEach(row => {
       row.client_id = 1;
     });
