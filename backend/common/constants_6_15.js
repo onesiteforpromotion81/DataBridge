@@ -55,4 +55,5 @@ export const HANDLER_NAME_MAP = {
   items: '商品管理',
   itemConnections: '商品関連付',
   itemCategories: '大中小分類',
+  realStocks: '現在庫',
 };

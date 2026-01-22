@@ -6,6 +6,7 @@ import { parseExcelShiftJIS } from "../utils/parseExcelShiftJIS.js";
 import { importPartners } from "./importServices/partnersImportService.js";
 import { importItems } from "./importServices/itemsImportService.js";
 import { importItemCategories } from "./importServices/itemCategoriesImportService.js";
+import { importRealStocks } from "./importServices/realStocksImportService.js";
 import { transformData } from "./importServices/dataTransformers.js";
 import { importGenericTable } from "./importServices/genericImportService.js";
 
@@ -72,6 +73,19 @@ export const uploadCSV = async (req, res) => {
       if (table === "items") {
         const result = await importItems(data);
         return res.json(result);
+      }
+
+      if (table === "real_stocks") {
+        try {
+          const result = await importRealStocks(data);
+          return res.json(result);
+        } catch (err) {
+          console.error("Real stocks CSV import failed:", err);
+          return res.status(500).json({
+            message: "Real stocks CSV import failed",
+            error: err.message
+          });
+        }
       }
 
       // Generic table import
