@@ -40,6 +40,7 @@ export async function importMonthlyStockOverviews(data) {
   let processed = 0;
   let failed = 0;
   let skipped = 0;
+  let skippedDuplicates = 0;
 
   const conn = await pool.getConnection();
   const queryTimeoutMs = Number(process.env.DB_QUERY_TIMEOUT_MS || 120000);
@@ -127,9 +128,9 @@ export async function importMonthlyStockOverviews(data) {
         // Calculate quantity: SZR310 + SZR060 - SZR070 + SZR080 - SZR090 + SZR100 - SZR110 - SZR120
         const quantity = szr310 + szr060 - szr070 + szr080 - szr090 + szr100 - szr110 - szr120;
 
-        // Insert into monthly_stock_overviews
-        await q(`
-          INSERT INTO monthly_stock_overviews
+        // Insert into monthly_stock_overviews (using INSERT IGNORE to handle duplicates)
+        const [result] = await q(`
+          INSERT IGNORE INTO monthly_stock_overviews
             (client_id, closing_monthly_id, item_id, warehouse_id, stock_allocation_id,
              purchased_quantity, purchase_returned_quantity, transferred_to_quantity,
              earning_quantity, earning_returned_quantity, transferred_from_quantity,
@@ -165,16 +166,28 @@ export async function importMonthlyStockOverviews(data) {
           quantity
         ]);
 
-        inserted++;
+        // Check if row was actually inserted (affectedRows > 0) or skipped due to duplicate
+        if (result.affectedRows > 0) {
+          inserted++;
+        } else {
+          skippedDuplicates++;
+          skipped++;
+        }
       } catch (err) {
-        console.error(`[monthly_stock_overviews] Row failed:`, err.message, row);
-        failed++;
+        // Check if it's a duplicate key error
+        if (err.code === 'ER_DUP_ENTRY' || err.message?.includes('Duplicate entry')) {
+          skippedDuplicates++;
+          skipped++;
+        } else {
+          console.error(`[monthly_stock_overviews] Row failed:`, err.message, row);
+          failed++;
+        }
       }
 
       processed++;
       if (progressEvery > 0 && processed % progressEvery === 0) {
         console.log(
-          `[monthly_stock_overviews] progress: ${processed}/${data.length}, inserted=${inserted}, failed=${failed}, skipped=${skipped}, elapsed=${Date.now() - startedAt}ms`
+          `[monthly_stock_overviews] progress: ${processed}/${data.length}, inserted=${inserted}, failed=${failed}, skipped=${skipped} (duplicates: ${skippedDuplicates}), elapsed=${Date.now() - startedAt}ms`
         );
       }
     }
@@ -188,11 +201,18 @@ export async function importMonthlyStockOverviews(data) {
     conn.release();
   }
 
+  // Log summary
+  console.log(`[monthly_stock_overviews] Import summary:`);
+  console.log(`  - Inserted: ${inserted}`);
+  console.log(`  - Skipped: ${skipped} (${skippedDuplicates} duplicates)`);
+  console.log(`  - Failed: ${failed}`);
+
   return {
     message: "Monthly stock overviews CSV processed successfully",
     inserted,
     skipped,
     failed,
+    skippedDuplicates,
     tableNames: ["monthly_stock_overviews"]
   };
 }
