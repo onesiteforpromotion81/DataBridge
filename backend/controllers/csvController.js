@@ -7,6 +7,7 @@ import { importPartners } from "./importServices/partnersImportService.js";
 import { importItems } from "./importServices/itemsImportService.js";
 import { importItemCategories } from "./importServices/itemCategoriesImportService.js";
 import { importRealStocks } from "./importServices/realStocksImportService.js";
+import { importMonthlyStockOverviews } from "./importServices/monthlyStockOverviewsImportService.js";
 import { transformData } from "./importServices/dataTransformers.js";
 import { importGenericTable } from "./importServices/genericImportService.js";
 
@@ -83,6 +84,19 @@ export const uploadCSV = async (req, res) => {
           console.error("Real stocks CSV import failed:", err);
           return res.status(500).json({
             message: "Real stocks CSV import failed",
+            error: err.message
+          });
+        }
+      }
+
+      if (table === "monthly_stock_overviews") {
+        try {
+          const result = await importMonthlyStockOverviews(data);
+          return res.json(result);
+        } catch (err) {
+          console.error("Monthly stock overviews CSV import failed:", err);
+          return res.status(500).json({
+            message: "Monthly stock overviews CSV import failed",
             error: err.message
           });
         }
