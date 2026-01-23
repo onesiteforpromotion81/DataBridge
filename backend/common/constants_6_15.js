@@ -56,4 +56,5 @@ export const HANDLER_NAME_MAP = {
   itemConnections: '商品関連付',
   itemCategories: '大中小分類',
   realStocks: '現在庫',
+  monthlyStockOverviews: '月次受払在庫',
 };
