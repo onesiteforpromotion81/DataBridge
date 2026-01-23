@@ -130,15 +130,16 @@ export async function importMonthlyStockOverviews(data) {
         // Insert into monthly_stock_overviews
         await q(`
           INSERT INTO monthly_stock_overviews
-            (closing_monthly_id, item_id, warehouse_id, stock_allocation_id,
+            (client_id, closing_monthly_id, item_id, warehouse_id, stock_allocation_id,
              purchased_quantity, purchase_returned_quantity, transferred_to_quantity,
              earning_quantity, earning_returned_quantity, transferred_from_quantity,
              purchased_amount, purchase_returned_amount, transferred_to_amount,
              earning_amount, earning_returned_amount, transferred_from_amount,
              previous_quantity, previous_amount, amount,
              previous_price, price, cost, quantity, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
         `, [
+          client_id,
           closing_monthly_id,
           item_id,
           warehouse_id,
