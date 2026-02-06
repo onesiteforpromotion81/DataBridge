@@ -78,7 +78,6 @@ export async function importMonthlyStockOverviews(data) {
           processed++;
           continue;
         }
-        console.log("item_id: ", item_id);
 
         // Get warehouse_id from warehouses where code = SZR040
         const warehouse_id = await idFrom(conn, "warehouses", row.SZR040);
@@ -96,6 +95,7 @@ export async function importMonthlyStockOverviews(data) {
           stock_allocation_id = 1;
         } else if (szr050 === 1) {
           stock_allocation_id = 2;
+          console.log("item_id: ", item_id);
         }
 
         // Parse numeric values (default to 0 if not provided)
