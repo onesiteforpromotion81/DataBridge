@@ -95,7 +95,6 @@ export async function importMonthlyStockOverviews(data) {
           stock_allocation_id = 1;
         } else if (szr050 === 1) {
           stock_allocation_id = 2;
-          console.log("item_id: ", item_id);
         }
 
         // Parse numeric values (default to 0 if not provided)
