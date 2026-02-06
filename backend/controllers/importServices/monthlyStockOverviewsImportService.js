@@ -97,6 +97,8 @@ export async function importMonthlyStockOverviews(data) {
           stock_allocation_id = 2;
         }
 
+        console.log("stock_allocation_id: ", stock_allocation_id);
+
         // Parse numeric values (default to 0 if not provided)
         const szr060 = Number(row.SZR060) || 0; // purchased_quantity
         const szr070 = Number(row.SZR070) || 0; // purchase_returned_quantity
