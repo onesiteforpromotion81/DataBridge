@@ -129,9 +129,46 @@ export async function importMonthlyStockOverviews(data) {
         // Calculate quantity: SZR310 + SZR060 - SZR070 + SZR080 - SZR090 + SZR100 - SZR110 - SZR120
         const quantity = szr310 + szr060 - szr070 + szr080 - szr090 + szr100 - szr110 - szr120;
 
-        // Insert into monthly_stock_overviews (using INSERT IGNORE to handle duplicates)
+        // Check if a row with the exact same combination already exists (including stock_allocation_id)
+        const [existingRows] = await q(
+          `SELECT id FROM monthly_stock_overviews 
+           WHERE client_id = ? AND closing_monthly_id = ? AND item_id = ? AND warehouse_id = ? AND stock_allocation_id = ?
+           LIMIT 1`,
+          [client_id, closing_monthly_id, item_id, warehouse_id, stock_allocation_id]
+        );
+
+        if (existingRows.length > 0) {
+          // Exact duplicate (including stock_allocation_id) - skip it
+          skippedDuplicates++;
+          skipped++;
+          skippedByStockAllocation[stockAllocKey] = (skippedByStockAllocation[stockAllocKey] || 0) + 1;
+          processed++;
+          continue;
+        }
+
+        // Check if a row exists with same combination but different stock_allocation_id
+        const [conflictingRows] = await q(
+          `SELECT stock_allocation_id FROM monthly_stock_overviews 
+           WHERE client_id = ? AND closing_monthly_id = ? AND item_id = ? AND warehouse_id = ?
+           LIMIT 1`,
+          [client_id, closing_monthly_id, item_id, warehouse_id]
+        );
+
+        if (conflictingRows.length > 0) {
+          const existingStockAllocId = conflictingRows[0].stock_allocation_id;
+          console.log(
+            `[monthly_stock_overviews] WARNING: Row with item_id=${item_id}, warehouse_id=${warehouse_id} ` +
+            `already exists with stock_allocation_id=${existingStockAllocId}, ` +
+            `but trying to insert with stock_allocation_id=${stock_allocation_id}. ` +
+            `This suggests the unique constraint doesn't include stock_allocation_id.`
+          );
+          // Still try to insert - if unique constraint includes stock_allocation_id, it will work
+          // If not, it will fail and be caught below
+        }
+
+        // Insert into monthly_stock_overviews
         const [result] = await q(`
-          INSERT IGNORE INTO monthly_stock_overviews
+          INSERT INTO monthly_stock_overviews
             (client_id, closing_monthly_id, item_id, warehouse_id, stock_allocation_id,
              purchased_quantity, purchase_returned_quantity, transferred_to_quantity,
              earning_quantity, earning_returned_quantity, transferred_from_quantity,
@@ -167,18 +204,15 @@ export async function importMonthlyStockOverviews(data) {
           quantity
         ]);
 
-        // Check if row was actually inserted (affectedRows > 0) or skipped due to duplicate
-        if (result.affectedRows > 0) {
-          inserted++;
-        } else {
-          skippedDuplicates++;
-          skipped++;
-        }
+        // Row was inserted successfully
+        inserted++;
+        insertedByStockAllocation[stockAllocKey] = (insertedByStockAllocation[stockAllocKey] || 0) + 1;
       } catch (err) {
         // Check if it's a duplicate key error
         if (err.code === 'ER_DUP_ENTRY' || err.message?.includes('Duplicate entry')) {
           skippedDuplicates++;
           skipped++;
+          skippedByStockAllocation[stockAllocKey] = (skippedByStockAllocation[stockAllocKey] || 0) + 1;
         } else {
           console.error(`[monthly_stock_overviews] Row failed:`, err.message, row);
           failed++;
