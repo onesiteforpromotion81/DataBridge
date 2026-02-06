@@ -41,6 +41,11 @@ export async function importMonthlyStockOverviews(data) {
   let failed = 0;
   let skipped = 0;
   let skippedDuplicates = 0;
+  let skippedMissingClosingMonthly = 0;
+  let skippedMissingItem = 0;
+  let skippedMissingWarehouse = 0;
+  const insertedByStockAllocation = { 1: 0, 2: 0, null: 0 };
+  const skippedByStockAllocation = { 1: 0, 2: 0, null: 0 };
 
   const conn = await pool.getConnection();
   const queryTimeoutMs = Number(process.env.DB_QUERY_TIMEOUT_MS || 120000);
@@ -50,6 +55,17 @@ export async function importMonthlyStockOverviews(data) {
     await conn.beginTransaction();
 
     for (const row of data) {
+      // Map SZR050 to stock_allocation_id: 0 -> 1, 1 -> 2 (calculate early for tracking)
+      let stock_allocation_id = null;
+      const szr050 = Number(row.SZR050);
+      if (szr050 === 0) {
+        stock_allocation_id = 1;
+      } else if (szr050 === 1) {
+        stock_allocation_id = 2;
+      }
+      // Track stock_allocation_id for debugging
+      const stockAllocKey = stock_allocation_id ?? 'null';
+      
       try {
         // Get closing_monthly_id from closing_monthlies where yyyy-mm of closing_date matches yyyy-mm of SZR020
         let closing_monthly_id = null;
@@ -64,8 +80,9 @@ export async function importMonthlyStockOverviews(data) {
           closing_monthly_id = closingRows.length ? closingRows[0].id : null;
         }
         if (!closing_monthly_id) {
-          console.log(`[monthly_stock_overviews] Skipping row: closing_monthly not found for date ${row.SZR020}`);
           skipped++;
+          skippedMissingClosingMonthly++;
+          skippedByStockAllocation[stockAllocKey] = (skippedByStockAllocation[stockAllocKey] || 0) + 1;
           processed++;
           continue;
         }
@@ -73,8 +90,9 @@ export async function importMonthlyStockOverviews(data) {
         // Get item_id from items where code = SZR030
         const item_id = await idFrom(conn, "items", row.SZR030);
         if (!item_id) {
-          console.log(`[monthly_stock_overviews] Skipping row: item with code ${row.SZR030} not found`);
           skipped++;
+          skippedMissingItem++;
+          skippedByStockAllocation[stockAllocKey] = (skippedByStockAllocation[stockAllocKey] || 0) + 1;
           processed++;
           continue;
         }
@@ -82,20 +100,11 @@ export async function importMonthlyStockOverviews(data) {
         // Get warehouse_id from warehouses where code = SZR040
         const warehouse_id = await idFrom(conn, "warehouses", row.SZR040);
         if (!warehouse_id) {
-          console.log(`[monthly_stock_overviews] Skipping row: warehouse with code ${row.SZR040} not found`);
           skipped++;
+          skippedMissingWarehouse++;
+          skippedByStockAllocation[stockAllocKey] = (skippedByStockAllocation[stockAllocKey] || 0) + 1;
           processed++;
           continue;
-        }
-
-        // Map SZR050 to stock_allocation_id: 0 -> 1, 1 -> 2
-        let stock_allocation_id = null;
-        const szr050 = Number(row.SZR050);
-        if (szr050 === 0) {
-          stock_allocation_id = 1;
-        } else if (szr050 === 1) {
-          stock_allocation_id = 2;
-          console.log("item_id: ", item_id);
         }
 
         // Parse numeric values (default to 0 if not provided)
@@ -239,7 +248,18 @@ export async function importMonthlyStockOverviews(data) {
   // Log summary
   console.log(`[monthly_stock_overviews] Import summary:`);
   console.log(`  - Inserted: ${inserted}`);
-  console.log(`  - Skipped: ${skipped} (${skippedDuplicates} duplicates)`);
+  console.log(`    - stock_allocation_id = 1: ${insertedByStockAllocation[1] || 0}`);
+  console.log(`    - stock_allocation_id = 2: ${insertedByStockAllocation[2] || 0}`);
+  console.log(`    - stock_allocation_id = null: ${insertedByStockAllocation['null'] || 0}`);
+  console.log(`  - Skipped: ${skipped}`);
+  console.log(`    - Missing closing_monthly: ${skippedMissingClosingMonthly}`);
+  console.log(`    - Missing item: ${skippedMissingItem}`);
+  console.log(`    - Missing warehouse: ${skippedMissingWarehouse}`);
+  console.log(`    - Duplicates: ${skippedDuplicates}`);
+  console.log(`  - Skipped by stock_allocation_id:`);
+  console.log(`    - stock_allocation_id = 1: ${skippedByStockAllocation[1] || 0}`);
+  console.log(`    - stock_allocation_id = 2: ${skippedByStockAllocation[2] || 0}`);
+  console.log(`    - stock_allocation_id = null: ${skippedByStockAllocation['null'] || 0}`);
   console.log(`  - Failed: ${failed}`);
 
   return {
