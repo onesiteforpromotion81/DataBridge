@@ -292,7 +292,7 @@ export async function processPartner(row, conn, ctx) {
         displayTaxEnum[row.T0701],
         calcMethodEnum[row.T0703],
         taxFractionEnum[row.T0705],
-        (row.T02 == "11" || row.T02 == 11 || row.T02 == "21" || row.T02 == 21) ? "CASH" : "DEPOSIT",
+        (row.T02 == "21" || row.T02 == 21) ? "CASH" : "DEPOSIT",
         "TAXATION",
         "POST_TAX"
       ]);
@@ -406,7 +406,7 @@ export async function processPartner(row, conn, ctx) {
           displayTaxEnum[row.T0701],
           calcMethodEnum[row.T0703],
           taxFractionEnum[row.T0705],
-          (row.T02 == "11" || row.T02 == 11 || row.T02 == "21" || row.T02 == 21) ? "CASH" : "DEPOSIT",
+          (row.T02 == "21" || row.T02 == 21) ? "CASH" : "DEPOSIT",
           "DEPOSIT",
           row.T2513,
           "NORMAL",
