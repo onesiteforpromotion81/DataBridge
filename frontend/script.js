@@ -1,4 +1,4 @@
-const API_BASE = "https://databridge.liquorhub-demo.cloud/api/csv";
+const API_BASE = process.env.API_BASE;
 
 // Constants
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
